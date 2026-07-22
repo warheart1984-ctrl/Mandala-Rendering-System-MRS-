@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://4dce.local/schemas/Timeline.schema.json",
+  "title": "CinematicTimeline",
+  "type": "object",
+  "required": ["id", "name", "tracks"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "durationSec": { "type": "number" },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "binding", "clips"],
+        "properties": {
+          "id": { "type": "string" },
+          "binding": { "type": "string" },
+          "clips": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "startSec", "durationSec", "action"],
+              "properties": {
+                "id": { "type": "string" },
+                "startSec": { "type": "number" },
+                "durationSec": { "type": "number" },
+                "action": {
+                  "type": "string",
+                  "enum": ["set_param", "render_4d", "play_animation"]
+                },
+                "payload": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

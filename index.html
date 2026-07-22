@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>4D Tesseract Renderer</title>
+    <link rel="stylesheet" href="css/cinematic.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <h1 class="brand">4DCE</h1>
+        <p class="tagline">
+          Draws a 4D surface (default: unit tesseract) via package
+          <code>4d-renderer</code> · rotates in 4D planes · projects 4D→3D→2D.
+          Does not render “4D” directly. Exports run Intent → Evidence →
+          Authority → Execution → CSR.
+        </p>
+        <ol class="pipeline" aria-label="Render pipeline">
+          <li>Geometry</li>
+          <li>4D rotate</li>
+          <li>Project</li>
+          <li>Draw edges</li>
+          <li>Provenance</li>
+        </ol>
+        <p class="charter-badge" id="charter-badge">charter.4dce.v1</p>
+        <p class="world-badge" id="world-badge">loading world…</p>
+      </header>
+
+      <div class="viewport">
+        <canvas id="stage" aria-label="Projected tesseract"></canvas>
+      </div>
+
+      <footer class="hud">
+        <div class="export-row">
+          <div class="actions">
+            <button type="button" id="btn-play-timeline" class="btn btn-primary">
+              Play Opening 4D Reveal
+            </button>
+            <button type="button" id="btn-play-ascension" class="btn btn-primary">
+              Play Mythar Ascension
+            </button>
+            <button type="button" id="btn-pause-timeline" class="btn">
+              Pause timeline
+            </button>
+            <button type="button" id="btn-toggle-render" class="btn">Pause renderer</button>
+            <button type="button" id="btn-reset-view" class="btn">Reset view</button>
+            <button type="button" id="btn-picture" class="btn">
+              Capture picture
+            </button>
+            <button type="button" id="btn-movie" class="btn">
+              Make movie
+            </button>
+            <button type="button" id="btn-provenance" class="btn">
+              Download CSSV ledger
+            </button>
+            <button type="button" id="btn-replay" class="btn">
+              Replay last CSR
+            </button>
+            <label class="duration">
+              Length
+              <select id="ctrl-duration" aria-label="Movie length in seconds">
+                <option value="4">4 s</option>
+                <option value="8" selected>8 s</option>
+                <option value="12">12 s</option>
+                <option value="20">20 s</option>
+              </select>
+            </label>
+          </div>
+          <p class="export-status" id="export-status" aria-live="polite"></p>
+          <div class="csr-panel" aria-label="Constitutional state records">
+            <div class="csr-label">CSR log · timeline <span id="read-timeline">0.00s</span></div>
+            <div id="csr-log" class="csr-log">No CSR yet.</div>
+          </div>
+        </div>
+        <div class="controls">
+          <label>
+            Surface
+            <select id="ctrl-surface" aria-label="4D surface">
+              <option value="tesseract" selected>tesseract</option>
+              <option value="clifford-torus">clifford-torus</option>
+              <option value="hopf-surface">hopf-surface</option>
+              <option value="torus-3d">torus-3d</option>
+              <option value="trefoil-4d">trefoil-4d</option>
+            </select>
+          </label>
+          <label>
+            Mode
+            <select id="ctrl-mode" aria-label="Render mode">
+              <option value="wireframe" selected>wireframe</option>
+              <option value="solid">solid</option>
+              <option value="both">solid + wireframe</option>
+            </select>
+          </label>
+          <label>
+            Look
+            <select id="ctrl-profile" aria-label="Render profile">
+              <option value="technical" selected>technical</option>
+              <option value="cinematic">cinematic</option>
+              <option value="solid-copper">solid copper</option>
+              <option value="lattice">lattice</option>
+            </select>
+          </label>
+          <label>
+            Quality
+            <select id="ctrl-quality" aria-label="Render quality">
+              <option value="performance">performance</option>
+              <option value="balanced">balanced</option>
+              <option value="high" selected>high</option>
+              <option value="ultra">ultra</option>
+            </select>
+          </label>
+          <label>
+            Speed
+            <span class="value" data-for="ctrl-speed">0.6</span>
+            <input
+              id="ctrl-speed"
+              type="range"
+              min="0"
+              max="2"
+              step="0.05"
+              value="0.6"
+            />
+          </label>
+          <label>
+            d₄ camera
+            <span class="value" data-for="ctrl-d4">4.0</span>
+            <input
+              id="ctrl-d4"
+              type="range"
+              min="2.5"
+              max="8"
+              step="0.1"
+              value="4"
+            />
+          </label>
+          <label>
+            d₃ camera
+            <span class="value" data-for="ctrl-d3">4.0</span>
+            <input
+              id="ctrl-d3"
+              type="range"
+              min="2.5"
+              max="8"
+              step="0.1"
+              value="4"
+            />
+          </label>
+          <label>
+            Scale
+            <span class="value" data-for="ctrl-scale">90</span>
+            <input
+              id="ctrl-scale"
+              type="range"
+              min="40"
+              max="160"
+              step="2"
+              value="90"
+            />
+          </label>
+        </div>
+        <div class="provenance" aria-live="polite">
+          <div><strong>fps</strong> <span id="read-fps">60 · high</span></div>
+          <div><strong>backend</strong> <span id="read-backend">Canvas 2D</span></div>
+          <div><strong>θ</strong> <span id="read-theta">0.00</span></div>
+          <div><strong>verts</strong> <span id="read-verts">16</span></div>
+          <div><strong>edges</strong> <span id="read-edges">32</span></div>
+          <div><strong>d₄</strong> <span id="read-d4">4.0</span></div>
+          <div><strong>d₃</strong> <span id="read-d3">4.0</span></div>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

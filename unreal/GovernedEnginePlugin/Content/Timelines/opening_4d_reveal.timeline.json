@@ -1,0 +1,53 @@
+{
+  "id": "timeline-opening-4d-reveal",
+  "name": "Opening 4D Reveal",
+  "durationSec": 12,
+  "tracks": [
+    {
+      "id": "track-camera",
+      "binding": "camera-main",
+      "clips": [
+        {
+          "id": "clip-dolly-in",
+          "startSec": 0,
+          "durationSec": 5,
+          "action": "set_param",
+          "payload": {
+            "param": "d3",
+            "from": 5.5,
+            "to": 3.2
+          }
+        }
+      ]
+    },
+    {
+      "id": "track-tesseract",
+      "binding": "tesseract-hero",
+      "clips": [
+        {
+          "id": "clip-4d-spin",
+          "startSec": 2,
+          "durationSec": 8,
+          "action": "render_4d",
+          "payload": {
+            "param": "speed",
+            "from": 0.4,
+            "to": 1.6,
+            "planes": ["XW", "YZ", "ZW", "YW"]
+          }
+        },
+        {
+          "id": "clip-d4-breathe",
+          "startSec": 0,
+          "durationSec": 12,
+          "action": "set_param",
+          "payload": {
+            "param": "d4",
+            "from": 3.5,
+            "to": 5.0
+          }
+        }
+      ]
+    }
+  ]
+}

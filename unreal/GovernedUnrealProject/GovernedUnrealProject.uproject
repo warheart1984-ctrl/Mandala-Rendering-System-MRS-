@@ -1,0 +1,47 @@
+{
+
+  "FileVersion": 3,
+
+  "EngineAssociation": "5.8",
+
+  "Category": "",
+
+  "Description": "4DCE governed cinematic host — Unreal Engine 5.8",
+
+  "Modules": [
+
+    {
+
+      "Name": "GovernedUnrealProject",
+
+      "Type": "Runtime",
+
+      "LoadingPhase": "Default"
+
+    }
+
+  ],
+
+  "Plugins": [
+
+    {
+
+      "Name": "GovernedEngine",
+
+      "Enabled": true
+
+    },
+
+    {
+
+      "Name": "MovieRenderPipeline",
+
+      "Enabled": true
+
+    }
+
+  ]
+
+}
+
+

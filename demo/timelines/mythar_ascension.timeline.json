@@ -1,0 +1,57 @@
+{
+  "id": "mythar_ascension",
+  "name": "Mythar Ascension",
+  "durationSec": 15,
+  "tracks": [
+    {
+      "id": "track-camera-rise",
+      "binding": "camera-main",
+      "clips": [
+        {
+          "id": "clip-rise",
+          "start": "00:00:00.000",
+          "duration": "00:00:12.000",
+          "startSec": 0,
+          "durationSec": 12,
+          "action": "set_param",
+          "payload": {
+            "param": "cameraY",
+            "from": 2,
+            "to": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "track-tesseract-ascend",
+      "binding": "tesseract-hero",
+      "clips": [
+        {
+          "id": "clip-ascend-spin",
+          "start": "00:00:03.000",
+          "duration": "00:00:12.000",
+          "startSec": 3,
+          "durationSec": 12,
+          "action": "render_4d",
+          "payload": {
+            "param": "speed",
+            "from": 0.8,
+            "to": 2.0,
+            "planes": ["XW", "YW", "ZW"]
+          }
+        },
+        {
+          "id": "clip-d4-ascend",
+          "startSec": 0,
+          "durationSec": 15,
+          "action": "set_param",
+          "payload": {
+            "param": "d4",
+            "from": 3.0,
+            "to": 6.0
+          }
+        }
+      ]
+    }
+  ]
+}

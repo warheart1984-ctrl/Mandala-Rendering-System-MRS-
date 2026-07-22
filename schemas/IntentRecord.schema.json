@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://4dce.local/schemas/IntentRecord.schema.json",
+  "title": "IntentRecord",
+  "type": "object",
+  "required": ["id", "actor", "type", "timestamp"],
+  "properties": {
+    "id": { "type": "string" },
+    "actor": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "render_scene",
+        "update_world",
+        "play_timeline",
+        "artifact.picture",
+        "artifact.movie",
+        "render.session",
+        "replay.params",
+        "artifact.provenance"
+      ]
+    },
+    "kind": { "type": "string" },
+    "goal": { "type": "string" },
+    "payload": { "type": "object" },
+    "constraints": { "type": "object" },
+    "timestamp": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "charterId": { "type": "string" }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSSV Dashboard</title>
+  <style>
+    :root { --bg: #0d1117; --fg: #e6edf3; --accent: #00ff88; --muted: #8b949e; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); margin: 1.5rem; }
+    h1 { font-size: 1.25rem; }
+    textarea { width: 100%; max-width: 48rem; background: #161b22; color: var(--fg); border: 1px solid #30363d; padding: 0.5rem; font-family: monospace; }
+    button { background: var(--accent); color: #000; border: none; padding: 0.5rem 1rem; cursor: pointer; margin-top: 0.5rem; }
+    table { border-collapse: collapse; width: 100%; max-width: 64rem; margin-top: 1rem; font-size: 0.85rem; }
+    th, td { border: 1px solid #30363d; padding: 0.35rem 0.5rem; text-align: left; }
+    th { color: var(--muted); }
+    canvas { background: #161b22; border: 1px solid #30363d; margin-top: 0.5rem; }
+    .status { color: var(--muted); font-size: 0.85rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Constitutional State Space Visualization (CSSV)</h1>
+  <p class="status">Query the canonical ledger — artifacts, transitions, frames.</p>
+
+  <section>
+    <h2>CQL Query</h2>
+    <textarea id="query" rows="5">SELECT frames
+FROM frame
+WHERE frame.timeline = "mythar_ascension"
+ORDER BY frame.timestamp ASC
+LIMIT 1000</textarea>
+    <br>
+    <button id="run">Run Query</button>
+    <span id="status" class="status"></span>
+  </section>
+
+  <section>
+    <h2>Results</h2>
+    <table id="results">
+      <thead>
+        <tr>
+          <th>type</th>
+          <th>timestamp</th>
+          <th>timeline</th>
+          <th>host</th>
+          <th>detail</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Trajectory (speed over time)</h2>
+    <canvas id="chart" width="800" height="280"></canvas>
+  </section>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

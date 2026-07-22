@@ -1,0 +1,13 @@
+[
+  {
+    "type": "artifact",
+    "id": "world-mythar-plains",
+    "artifactType": "world",
+    "host": "browser",
+    "timestamp": 0,
+    "payload": {
+      "dto": "GovernedWorldDto",
+      "data": { "id": "world-mythar-plains", "name": "Mythar Plains" }
+    }
+  }
+]

@@ -1,0 +1,122 @@
+[
+
+  {
+
+    "id": "policy-no-execution-without-intent",
+
+    "scope": "runtime",
+
+    "condition": "intent != null",
+
+    "rule": "deny_if_false",
+
+    "severity": "critical",
+
+    "message": "No execution without intent."
+
+  },
+
+  {
+
+    "id": "policy-no-state-change-without-evidence",
+
+    "scope": "state",
+
+    "condition": "require_evidence_for_mutation",
+
+    "rule": "deny_if_false",
+
+    "severity": "high",
+
+    "message": "No state change without evidence."
+
+  },
+
+  {
+
+    "id": "policy-no-render-without-provenance",
+
+    "scope": "render",
+
+    "condition": "play_timeline_or_render_4d",
+
+    "rule": "attach_provenance",
+
+    "severity": "high",
+
+    "message": "No render without provenance."
+
+  },
+
+  {
+
+    "id": "policy-no-authority-without-contract",
+
+    "scope": "authority",
+
+    "condition": "actor_has_contract",
+
+    "rule": "deny_if_false",
+
+    "severity": "critical",
+
+    "message": "No authority without contract."
+
+  },
+
+  {
+
+    "id": "policy-play-timeline-requires-world",
+
+    "scope": "timeline",
+
+    "condition": "play_timeline_requires_world",
+
+    "rule": "deny_if_missing_world",
+
+    "severity": "critical",
+
+    "message": "play_timeline requires a world id on the intent."
+
+  },
+
+  {
+
+    "id": "policy-ascension-drift-throttle",
+
+    "scope": "render",
+
+    "condition": "intent.timeline == 'mythar_ascension' && drift_score > 0.7",
+
+    "rule": "modify_param",
+
+    "param": "speed",
+
+    "modifier": "speed * 0.5",
+
+    "severity": "medium",
+
+    "message": "Throttle ascension speed when drift is high."
+
+  },
+
+  {
+
+    "id": "policy-ascension-evidence",
+
+    "scope": "runtime",
+
+    "condition": "intent.timeline == 'mythar_ascension'",
+
+    "rule": "deny_if_false",
+
+    "require": ["ev-ascension-001", "ev-ascension-002"],
+
+    "severity": "critical",
+
+    "message": "Mythar Ascension requires dual evidence."
+
+  }
+
+]
+

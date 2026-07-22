@@ -1,0 +1,25 @@
+{
+  "name": "GovernedEngine.Editor",
+  "rootNamespace": "GovernedEngine.Editor",
+  "references": [
+    "GovernedEngine",
+    "Unity.Recorder.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.unity.recorder",
+      "expression": "4.0.0",
+      "define": "GOVERNED_UNITY_RECORDER"
+    }
+  ],
+  "noEngineReferences": false
+}

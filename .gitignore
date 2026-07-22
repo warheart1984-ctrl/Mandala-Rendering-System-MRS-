@@ -1,0 +1,50 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+*.zip
+
+# Build / cache
+dist/
+build/
+output/
+4d-renderer/output/
+4d-renderer/node_modules/
+cssv/node_modules/
+
+# Unity
+unity/**/Library/
+unity/**/Temp/
+unity/**/Obj/
+unity/**/Logs/
+unity/**/UserSettings/
+unity/**/*.csproj
+unity/**/*.sln
+unity/**/*.userprefs
+unity/**/MemoryCaptures/
+
+# Unreal
+unreal/**/Binaries/
+unreal/**/DerivedDataCache/
+unreal/**/Intermediate/
+unreal/**/Saved/
+unreal/**/.vs/
+unreal/**/*.xcworkspace
+unreal/**/*.opendb
+unreal/**/*.opensdf
+unreal/**/*.sdf
+unreal/**/*.sln
+unreal/**/*.suo
+unreal/**/*.xcodeproj
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+credentials.json
+*.pem
+
+# IDE
+.idea/
+.vs/
+*.swp

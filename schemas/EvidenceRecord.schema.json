@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://4dce.local/schemas/EvidenceRecord.schema.json",
+  "title": "EvidenceRecord",
+  "type": "object",
+  "required": ["timestamp"],
+  "properties": {
+    "id": { "type": "string" },
+    "source": {
+      "type": "string",
+      "enum": ["asset", "sensor", "user", "renderer", "timeline", "world"]
+    },
+    "claims": { "type": "array" },
+    "hash": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "vertexCount": { "type": "integer" },
+    "edgeCount": { "type": "integer" },
+    "theta": { "type": "number" },
+    "d4": { "type": "number" },
+    "d3": { "type": "number" },
+    "speed": { "type": "number" },
+    "scale": { "type": "number" }
+  },
+  "additionalProperties": true
+}

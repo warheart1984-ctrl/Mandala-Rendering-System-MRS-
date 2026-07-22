@@ -1,0 +1,67 @@
+{
+  "id": "world-mythar-plains",
+  "name": "Mythar Plains",
+  "constitution": "charter.4dce.v1",
+  "contracts": ["contract.cinematic4d.v1", "contract.export.v1"],
+  "assets": [
+    {
+      "id": "asset-tesseract-unit",
+      "type": "FourDGeometry",
+      "uri": "builtin://tesseract",
+      "evidence": ["evidence-tesseract-invariants"]
+    },
+    {
+      "id": "asset-timeline-opening",
+      "type": "Timeline",
+      "uri": "../timelines/opening_4d_reveal.timeline.json",
+      "evidence": ["evidence-timeline-registered"]
+    },
+    {
+      "id": "asset-timeline-ascension",
+      "type": "Timeline",
+      "uri": "../timelines/mythar_ascension.timeline.json",
+      "evidence": ["ev-ascension-001", "ev-ascension-002"]
+    }
+  ],
+  "entities": [
+    {
+      "id": "camera-main",
+      "name": "GovernedCamera",
+      "parent": null,
+      "components": [
+        {
+          "type": "Transform",
+          "config": { "position": [0, 0, -10], "rotation": [0, 0, 0] }
+        },
+        {
+          "type": "Camera",
+          "config": { "fov": 60, "d3": 4.0 }
+        }
+      ]
+    },
+    {
+      "id": "tesseract-hero",
+      "name": "TesseractHero",
+      "parent": null,
+      "components": [
+        {
+          "type": "Transform",
+          "config": { "position": [0, 0, 0] }
+        },
+        {
+          "type": "FourDRenderer",
+          "config": {
+            "d4": 4.0,
+            "d3": 4.0,
+            "scale": 90,
+            "speed": 0.6,
+            "surfaceId": "tesseract",
+            "renderMode": "wireframe",
+            "planes": ["XW", "YZ", "ZW", "YW"]
+          }
+        }
+      ]
+    }
+  ],
+  "timelines": ["timeline-opening-4d-reveal", "mythar_ascension"]
+}
