@@ -1,0 +1,28 @@
+{
+  "name": "4d-renderer",
+  "version": "1.0.0",
+  "description": "Standalone 4D→3D→2D parametric surface renderer with movie pipeline",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./math/*": "./src/math/*",
+    "./surfaces/*": "./src/surfaces/*",
+    "./render/*": "./src/render/*",
+    "./pipeline/*": "./src/pipeline/*"
+  },
+  "bin": {
+    "4d-render": "src/cli.js"
+  },
+  "scripts": {
+    "render": "node src/cli.js render",
+    "list": "node src/cli.js list",
+    "test": "node src/cli.js render --surface tesseract --single --width 320 --height 240 --output output/test",
+    "test:frames": "node src/cli.js render --surface clifford-torus --frames 8 --fps 8 --width 320 --height 240 --mode wireframe --resolution 16 --output output/test"
+  },
+  "dependencies": {
+    "canvas": "^3.1.0",
+    "commander": "^13.1.0",
+    "ws": "^8.21.1"
+  }
+}
