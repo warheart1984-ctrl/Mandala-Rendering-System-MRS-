@@ -92,8 +92,8 @@ def test_health_ok(client):
     assert body["b2_probe"] is None
     assert body["embed_model"] == "nvidia/nv-embedcode-7b-v1"
     assert body["video_model"] == "nvidia/cosmos-1.0-7b-diffusion-text2world"
-    assert body["video_enabled"] is False
-    assert body["video_available"] is False  # disabled by default (stills judge demo)
+    assert body["video_enabled"] is True
+    assert body["video_available"] is True  # dry-run + enabled
     assert body["cmm_id"] == "CMM-NIM-Cosmos-v1.0"
     assert body["domain_id"] == "CH-GNMD-v1.0"
     assert "video_timeouts" in body

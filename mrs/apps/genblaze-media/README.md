@@ -41,7 +41,7 @@ Copy secrets into the **repo-root** `.env` (preferred) or `mrs/apps/genblaze-med
 | `B2_ENDPOINT` | optional; defaults to `https://s3.<region>.backblazeb2.com` |
 | `GENBLAZE_IMAGE_MODEL` | optional; default `black-forest-labs/flux.1-schnell` |
 | `GENBLAZE_VIDEO_MODEL` | optional; default `nvidia/cosmos-1.0-7b-diffusion-text2world`; fallback `nvidia/cosmos-1.0-12b-diffusion-text2world` when available on the key |
-| `GENBLAZE_VIDEO_ENABLED` | default **off** (judge stills demo); set `1` to show Cosmos UI and enable `/api/generate-video` |
+| `GENBLAZE_VIDEO_ENABLED` | default **off**; set `0` to disable `/api/generate-video` |
 | `GENBLAZE_VIDEO_HTTP_TIMEOUT` / `GENBLAZE_VIDEO_NVCF_TIMEOUT` / `GENBLAZE_VIDEO_PIPELINE_TIMEOUT` / `GENBLAZE_VIDEO_NVCF_POLL_SECONDS` | Cosmos video timeouts (defaults 900 / 900 / 1200 / 120) |
 | `GENBLAZE_STORAGE_PREFIX` | optional; default `genblaze-media` |
 | `GENBLAZE_DRY_RUN` | `1` only for unit tests / offline mocks — **not** live demos |
@@ -149,6 +149,7 @@ Operator **opt-in** text-to-video path (`app/pipeline_video.py`). **Default off*
 | --- | --- |
 | Default | `GENBLAZE_VIDEO_ENABLED=0` — UI section hidden; `/api/generate-video` returns 503; `/media/nim-cosmos` → stills |
 | Live generate | Requires `GENBLAZE_VIDEO_ENABLED=1`, `NVIDIA_API_KEY`, **and** Cosmos model access on that key (probe may be DEAD) |
+| Live generate | Requires `NVIDIA_API_KEY` **and** Cosmos model access on that key |
 | Default model | `nvidia/cosmos-1.0-7b-diffusion-text2world`; optional fallback `nvidia/cosmos-1.0-12b-diffusion-text2world` when the upstream probe confirms access |
 | Timeouts | Video defaults are higher than FLUX (see `.env.example`); first hit after Render/NIM idle can still feel slow |
 | NVCF cold-start | Cosmos is often **slower than FLUX** on cold start even with 600s+ timeouts — expect longer first-request latency; keep the browser tab open |
