@@ -11,7 +11,6 @@ A focused foundation for a governed cinematic render stack:
 | Piece | Path | Status |
 | --- | --- | --- |
 | Constitution (CI-001..CI-006) | `constitution/` | **design** — prose + machine-readable JSON |
-| Lifecycle bridge (SX-PTIG) | `constitution/LIFECYCLE.md` + `lifecycle-bridge.json` | **declared** — continuity ≠ acceptance; not a runtime gate |
 | Lineage artifact schemas (7) | `schemas/` | **specified** — Draft 2020-12, unit-validated |
 | Dual conformance profiles | `profiles/` | `cros.dcc-offline` **declared**; `cros.gen-ai-nim` **skeleton** |
 | Python package | `src/cros/` | **skeleton / partial** — types, hashing, validators, gen-ai planner |
@@ -104,8 +103,7 @@ mrs/packages/cros/
 | Gen-ai evidence field enforcement | yes | |
 | Offline DCC planner | | raises `UnsupportedProfileError` |
 | Offline required-field enforcement | | declared, not machine-checked |
-| Any real adapter (NIM, Cycles, …) | | none — `NullRenderAdapter`; `adapters/seedance.py` is **skeleton** only |
-| Seedance live HTTP | | owned by genblaze-media (`GENBLAZE_VIDEO_BACKEND=seedance`), not this package |
+| Any real adapter (NIM, Cycles, …) | | none — `NullRenderAdapter` only |
 | Replay executor | | `verdict: unverified` only |
 | Farm / OIDN / ACES / color mgmt | | absent |
 | Coupling to genblaze-media | none (banned) | optional future HTTP export |
