@@ -23,6 +23,13 @@
  *        --width 448 --height 448 --samples 24 --seed 12345 \
  *        --output /tmp/out.png --provenance /tmp/out.json
  *
+ * Engine3D frame path (OPTIONAL, not default):
+ *   This CLI remains the Genblaze prompt→archetype still path.
+ *   Engine3D → RT4D bridge capture/receipt lives in `@mrs/engine3d-core`
+ *   (`captureEngine3DScene` / `renderEngine3dFrame`) and
+ *   `src/render/rt4d/bridge/engine3dBridgeScene.js`. Do not assume
+ *   `ENGINE3D_FRAME=1` / `--engine3d-frame` hijacks this default.
+ *
  * On success the provenance JSON is written to stdout (single line) and,
  * optionally, to the --provenance path. Exit code is non-zero on failure with
  * a diagnostic on stderr.
@@ -248,6 +255,28 @@ const TESSERACT_CAMERA_RADIUS = 6.4;
  * threshold) gets the rough GGX "silver" material.
  */
 const RING_GGX_MIN_SAMPLES = 12;
+
+/**
+ * Concentric mandala ring specs for `tesseract-lattice`.
+ *
+ * Neighbouring equal-radius spheres on a circle of radius R touch/overlap when
+ * `nodeRadius >= radius * sin(π / count)` (half the chord length between
+ * neighbours). Counts are even integers with a small overlap margin:
+ *   R=2.05, r=0.13 → need n≥50 (sin bound ≈0.124); use 52
+ *   R=2.55, r=0.11 → need n≥73 (sin bound ≈0.105); use 76
+ * vs the prior dotted 32/40 which failed that inequality. Node count +56
+ * keeps total objects ≈541 (≤800 budget).
+ */
+export const TESSERACT_RING_SPECS = Object.freeze([
+  Object.freeze({ radius: 2.05, count: 52, y: TESSERACT_CENTER_Y - 0.05, nodeRadius: 0.13 }),
+  Object.freeze({ radius: 2.55, count: 76, y: TESSERACT_CENTER_Y - 0.12, nodeRadius: 0.11 }),
+]);
+
+/** True when neighbouring equal-radius spheres on a circle of `radius` touch or overlap. */
+export function ringNodesTouch(radius, count, nodeRadius) {
+  if (!(radius > 0) || !(count >= 3) || !(nodeRadius > 0)) return false;
+  return nodeRadius >= radius * Math.sin(Math.PI / count);
+}
 
 /**
  * The 32 canonical edges of an 8-cell: vertex indices whose bit patterns differ
@@ -527,14 +556,11 @@ function buildScene(descriptor, seed, { samples = 24 } = {}) {
       const useMetalRings =
         descriptor.materialType === "ggx" && samples >= RING_GGX_MIN_SAMPLES;
       const ringMaterial = useMetalRings ? "silver" : "ring-glow";
-      // Neighbour spacing on a circle of radius R with n equal nodes is
-      // 2·R·sin(π/n). Nodes of radius r touch/overlap when r ≥ R·sin(π/n).
-      // Specs below satisfy that inequality with a small overlap so draft
-      // rings read continuous (not spaced beads) without a second chain pass.
-      const ringSpecs = TESSERACT_RING_SPECS;
+      // Continuous rings: each TESSERACT_RING_SPECS entry satisfies
+      // nodeRadius >= radius·sin(π/count) so neighbours touch/overlap.
       let ringNodes = 0;
-      for (let r = 0; r < ringSpecs.length; r++) {
-        const { radius, count, y, nodeRadius } = ringSpecs[r];
+      for (let r = 0; r < TESSERACT_RING_SPECS.length; r++) {
+        const { radius, count, y, nodeRadius } = TESSERACT_RING_SPECS[r];
         for (let i = 0; i < count; i++) {
           const a = (i / count) * Math.PI * 2 + (r === 0 ? 0 : Math.PI / count);
           accents.push({

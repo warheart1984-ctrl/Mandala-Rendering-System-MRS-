@@ -268,17 +268,15 @@ test("tesseract mandala rings satisfy the node-touch continuity inequality", () 
   for (const { radius, count, nodeRadius } of TESSERACT_RING_SPECS) {
     const need = radius * Math.sin(Math.PI / count);
     assert.ok(
-      nodeRadius >= need,
+      ringNodesTouch(radius, count, nodeRadius),
       `ring R=${radius} n=${count} r=${nodeRadius}: need >= ${need.toFixed(4)}`,
     );
-    assert.ok(
-      ringNodesTouch(radius, count, nodeRadius),
-      `ringNodesTouch(R=${radius}, n=${count}, r=${nodeRadius})`,
-    );
+    // Prefer denser counts over ballooning nodeRadius (review: increase n).
+    assert.ok(count >= 50, `ring count ${count} too sparse for continuity at R=${radius}`);
     expectedNodes += count;
   }
-  assert.equal(expectedNodes, 32 + 40);
-  // Helper sanity: the prior dotted specs fail the same predicate.
+  assert.equal(expectedNodes, 52 + 76);
+  // Helper sanity: the prior dotted 32/40 specs fail the same predicate.
   assert.equal(ringNodesTouch(2.05, 32, 0.13), false);
   assert.equal(ringNodesTouch(2.55, 40, 0.11), false);
 });
@@ -306,12 +304,15 @@ test("tesseract-lattice archetype reports composition and stays above blank lumi
   assert.equal(provenance.composition.tesseract_vertices, 16);
   assert.equal(provenance.composition.tesseract_edges, 32);
   assert.ok(provenance.composition.beam_spheres >= 32);
-  assert.equal(provenance.composition.ring_nodes, 32 + 40);
-  // Bound the CPU cost: sphere-chain beams must not explode object count.
-  // Radius bump keeps node count fixed, so object_count stays in the prior band.
+  assert.equal(provenance.composition.ring_nodes, 52 + 76);
+  // Bound the CPU cost: continuous rings add ~56 nodes (~541 total).
   assert.ok(
     provenance.object_count <= 800,
     `object_count ${provenance.object_count} exceeds the draft CPU budget`,
+  );
+  assert.ok(
+    provenance.object_count >= 500,
+    `object_count ${provenance.object_count} unexpectedly low after continuous rings`,
   );
   assert.equal(provenance.composition.emissive_cores, 1);
   // Draft sample counts use soft emissive rings, not black GGX silhouettes.
