@@ -16,7 +16,7 @@ export const renderSceneSpecInputShape = {
   sceneSpec: z
     .string()
     .describe(
-      "SceneSpecification as a JSON string to path-trace via local RT4D (deterministic procedural; not diffusion)"
+      "SceneSpecification as a JSON string to path-trace via local RT4D"
     ),
   quality: z
     .enum(["smoke", "draft", "standard"])
@@ -85,10 +85,6 @@ export async function handleRenderSceneSpec(
   const quality = (parsed.quality ?? "draft") as QualityPreset;
   const sceneSpec = parseSceneSpecPayload(parsed.sceneSpec);
 
-  if (parsed.seed != null) {
-    sceneSpec.seed = parsed.seed >>> 0;
-  }
-
   const structural = parseSceneSpecification(sceneSpec);
   if (!structural.ok) {
     const msg = structural.errors
@@ -106,14 +102,7 @@ export async function handleRenderSceneSpec(
     throw new Error(`unsupported SceneSpecification: ${msg}`);
   }
 
-  const result = await runSceneSpecRender(sceneSpec, {
-    quality,
-    width: parsed.width,
-    height: parsed.height,
-    samples: parsed.samples,
-    maxDepth: parsed.maxDepth,
-    keepFile: true,
-  });
+  const result = await runSceneSpecRender(sceneSpec, quality);
 
   const sha256 = result.image.sha256;
   return {

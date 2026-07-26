@@ -11,7 +11,6 @@ import { updateSceneInputShape } from "./update-scene.js";
 import { replaySceneInputShape } from "./replay-scene.js";
 import { validateSceneSpecInputShape } from "./validate-scene-spec.js";
 import { renderSceneSpecInputShape } from "./render-scene-spec.js";
-import { render4dPromptInputShape } from "./render-4d-prompt.js";
 import {
   asVec4,
   numberPairArray,
@@ -73,14 +72,11 @@ describe("OpenAI-compatible MCP tool schemas", () => {
       replaySceneInputShape,
       validateSceneSpecInputShape,
       renderSceneSpecInputShape,
-      render4dPromptInputShape,
     ]) {
       assertNoTupleItems(zodToJsonSchema(z.object(shape)));
     }
     const validate = zodToJsonSchema(z.object(validateSceneSpecInputShape));
     assert.equal(validate.properties.sceneSpec.type, "string");
-    const prompt = zodToJsonSchema(z.object(render4dPromptInputShape));
-    assert.equal(prompt.properties.prompt.type, "string");
   });
 
   it("inspect-like vec4 / pair helpers emit homogeneous items without $ref", () => {

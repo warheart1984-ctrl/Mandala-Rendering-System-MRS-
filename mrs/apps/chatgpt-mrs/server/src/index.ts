@@ -1,16 +1,12 @@
 /**
  * MRS 4D Renderer — ChatGPT MCP server.
  *
- * Primary results: deterministic procedural RT4D PNG via MCP image content
- * (`type: "image"`, base64 `data`, `mimeType: "image/png"`). Optional skybridge
- * viewport widget remains for Scene4DDTO tools only — render tools do NOT set
- * openai/outputTemplate so ChatGPT shows the PNG, not the viewport.
+ * Transports (ChatGPT Apps prefer Streamable HTTP):
+ * - Streamable HTTP: POST/GET/DELETE /mcp (stateless JSON mode for OpenAI clients)
+ * - Legacy SSE: GET /sse + POST /mcp/messages (MCP Inspector / older clients)
  *
- * Transports:
- * - Streamable HTTP: POST/GET/DELETE /mcp (stateless JSON; preferred by ChatGPT)
- * - Legacy SSE: GET /sse + POST /mcp/messages
- *
- * SDK: @modelcontextprotocol/sdk ^1.29.0 + @modelcontextprotocol/ext-apps.
+ * Tool/resource registration: registerAppTool + registerAppResource + RESOURCE_MIME_TYPE
+ * from @modelcontextprotocol/ext-apps. SDK: @modelcontextprotocol/sdk ^1.29.0.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -567,7 +563,6 @@ const httpServer = createServer(async (req, res) => {
           streamableHttp: `POST ${mcpPath}`,
           legacySse: `GET ${ssePath} + POST ${ssePostPath}`,
         },
-        primaryTools: ["render_4d_prompt", "render_scene_spec_rt4d"],
         tools: [
           "render_4d_prompt",
           "render_scene_spec_rt4d",
@@ -632,7 +627,7 @@ const httpServer = createServer(async (req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`MRS 4D Renderer MCP listening on http://127.0.0.1:${PORT}`);
+  console.log(`MRS ChatGPT MCP server listening on http://127.0.0.1:${PORT}`);
   console.log(`  Streamable HTTP: POST http://127.0.0.1:${PORT}${mcpPath}`);
   console.log(`  Legacy SSE:      GET  http://127.0.0.1:${PORT}${ssePath}`);
   console.log(

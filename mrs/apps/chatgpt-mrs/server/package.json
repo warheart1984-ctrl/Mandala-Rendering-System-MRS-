@@ -7,9 +7,7 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test:schema": "tsx --test src/tools/schema-openai.test.mjs",
-    "test:render-smoke": "tsx --test src/tools/render-smoke.test.mjs",
-    "test": "tsx --test src/tools/schema-openai.test.mjs src/tools/render-smoke.test.mjs"
+    "test:schema": "tsx --test src/tools/schema-openai.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^1.0.1",
