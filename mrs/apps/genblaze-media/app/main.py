@@ -192,6 +192,7 @@ class GenerateRequest(BaseModel):
             "Render quality for then_scene MRS still: 'draft'/'fast' (default, "
             "smaller/noisier, typically tens of seconds) or 'final'/'high' (RT4D_* "
             "profile, slower). Ignored when then_scene is false."
+            "Also enabled by GENBLAZE_FLUX_THEN_SCENE=1."
         ),
     )
 
@@ -505,12 +506,6 @@ def _run_generate_common(body: GenerateRequest, *, video: bool) -> dict:
             public["then_scene_error"] = exc.detail
         except Exception as exc:  # noqa: BLE001 — never fail the FLUX still
             public["then_scene_error"] = str(exc)
-    logger.info(
-        "generate done · modality=%s run=%s elapsed_s=%.1f",
-        kind,
-        public.get("run_id") or "—",
-        time.monotonic() - started,
-    )
     return public
 
 
