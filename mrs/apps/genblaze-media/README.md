@@ -8,6 +8,7 @@ Thin **FastAPI** service: user prompt → **Genblaze** (`genblaze-nvidia` + `gen
 | Genblaze 4D render | **Not claimed** — Genblaze's NVIDIA path generates 2D (NIM FLUX); MRS remains the 4D renderer |
 | RT4D image backend | **Prepared** — `GENBLAZE_IMAGE_BACKEND=rt4d` shells out to renderer-core `render-still.mjs` for deterministic procedural 4D stills (NOT text-to-image). Requires Node; the **repo-root** Dockerfile bundles Node 22 + renderer-core; the app-local one cannot. Live Render RT4D is only verified after Manual Deploy + `/health.rt4d.available: true` |
 | Image → SceneSpecification | **Prepared** — `POST /api/image-to-scene` interprets a still (NIM vision or heuristic) into SceneSpecification, then MRS path-traces a full frame. **Not** geometric reconstruction / photogrammetry |
+| RT4D image backend | **Prepared** — `GENBLAZE_IMAGE_BACKEND=rt4d` shells out to renderer-core `render-still.mjs` for deterministic procedural 4D stills (NOT text-to-image). Requires Node; the **repo-root** Dockerfile bundles it, the app-local one cannot. Render deploy **not yet verified** — check `/health.rt4d.available` |
 | Operator deploy | **Prepared** — Dockerfile + `render.yaml` (Render free web) |
 | Live NIM generate | **Requires** `NVIDIA_API_KEY` at runtime (default backend) |
 | NIM Cosmos video (CMM-NIM-Cosmos) | **Prepared** — defaults **on** when `NVIDIA_API_KEY` is set and `GENBLAZE_VIDEO_ENABLED` is unset; pin `0` for stills-only (Render blueprint does). Cosmos catalog access is key-dependent; docs **declared** not enforced |
@@ -112,6 +113,7 @@ Get a free NIM key: [build.nvidia.com](https://build.nvidia.com/).
 | Health `rt4d_note` | Describes the procedural path; **`rt4d.available`** is authoritative for whether this running image has Node + script (not a “Node missing from Docker” claim — root Dockerfile includes it) |
 
 Monorepo summary: [`mrs/README.md`](../../README.md) → Operator changelog.
+| Deployed Render service | Declared, **not yet verified on Render**. Treat `/health.rt4d.available` on the live URL as the only evidence; a service on an older image still reports `false` until redeployed |
 
 ### Enable locally
 
@@ -147,6 +149,40 @@ set GENBLAZE_IMAGE_FALLBACK_TO_RT4D=1
 
 RT4D needs two things inside the container: a `node` binary and the
 `renderer-core` sources. The repo-root `Dockerfile` provides both:
+
+- `COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node` —
+  the binary only. `npm install` is deliberately skipped: `render-still.mjs`
+  imports node builtins plus `src/render/rt4d/**`, so nothing in the render path
+  resolves to a package in `node_modules`. `package.json` is still copied
+  because its `"type": "module"` is what makes the `.js` sources load as ESM.
+- `COPY mrs/packages/renderer-core/{package.json,src,scripts} ./renderer-core/`
+  and `RT4D_SCRIPT_PATH=/app/renderer-core/scripts/render-still.mjs`.
+- A 64×64/1-sample render runs at build time, so a broken Node layer or a
+  missing import fails the build instead of surfacing as a runtime 502.
+
+**Build context must be the repo root.** `mrs/packages/renderer-core` sits
+outside `mrs/apps/genblaze-media`, so the app-local Dockerfile cannot copy it.
+On Render that means: Root Directory empty, Dockerfile Path `./Dockerfile`.
+
+Verify a build locally before deploying:
+
+```bash
+# from the repo root
+docker build -t genblaze-rt4d .
+docker run --rm -e GENBLAZE_IMAGE_BACKEND=rt4d -p 8000:8000 genblaze-rt4d
+curl -s localhost:8000/health | python -m json.tool   # expect rt4d.available true
+curl -s -X POST localhost:8000/api/generate \
+  -H 'content-type: application/json' \
+  -d '{"prompt":"cyan tesseract lattice","embed":false}'
+```
+
+Sizing: the render is a single-threaded CPU path trace, and Render's free plan
+is a shared 0.1 CPU, so a render there is far slower than on a dev machine and
+must still finish inside the platform request timeout. `render.yaml` therefore
+pins `RT4D_RENDER_WIDTH/HEIGHT=256` and `RT4D_SAMPLES=8`. Those numbers are a
+conservative starting point, not a measured budget — time a render on the
+target plan before raising them.
+### Docker / Render follow-up (Node not yet in the image)
 
 - `COPY --from=node:22-bookworm-slim /usr/local/bin/node /usr/local/bin/node` —
   the binary only. `npm install` is deliberately skipped: `render-still.mjs`

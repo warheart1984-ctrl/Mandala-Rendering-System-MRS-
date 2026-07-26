@@ -330,6 +330,8 @@ def health() -> dict:
             "seed records variation. Requires Node + render-still.mjs; the "
             "rt4d.available field above is the authoritative check for this "
             "running image."
+            "seed records variation. Requires Node + render-still.mjs (not yet in "
+            "the python:3.12 Docker image)."
         ),
         "scene_spec": scene_spec_availability(settings),
         "scene_spec_note": (
