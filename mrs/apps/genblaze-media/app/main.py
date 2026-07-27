@@ -1197,6 +1197,11 @@ def api_engine3d_still(body: Engine3dStillRequest) -> dict:
         # Allow empty prompt — face defaults applied later if face_rig; otherwise
         # resolve_face_polish_prompt still returns a generic cinematic prompt.
         pass
+    if body.polish and not (body.prompt or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="prompt is required when polish=true",
+        )
     if body.polish and not settings.polish_enabled:
         raise HTTPException(
             status_code=503,
@@ -1351,6 +1356,10 @@ def api_engine3d_still(body: Engine3dStillRequest) -> dict:
                     "diffusion does not geometrically lock silhouette."
                 ),
             }
+                prompt=str(body.prompt).strip(),
+                strength=body.polish_strength,
+            )
+            payload["polish"] = polish_payload
         except HTTPException:
             raise
         except Exception as exc:  # noqa: BLE001

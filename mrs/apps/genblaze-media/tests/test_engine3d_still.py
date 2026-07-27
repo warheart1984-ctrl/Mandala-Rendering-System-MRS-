@@ -257,6 +257,11 @@ def test_api_engine3d_still_polish_requires_prompt(tmp_path, monkeypatch):
     assert "polish" in body
     assert body.get("face_polish", {}).get("face_rig") is True
 
+    main_mod._index = AssetIndex(tmp_path / "recent.json")
+    client = TestClient(app)
+    resp = client.post("/api/engine3d-still", json={"polish": True})
+    assert resp.status_code == 400
+
 
 def test_engine3d_sequence_availability_shape():
     avail = engine3d_sequence_availability(_settings())

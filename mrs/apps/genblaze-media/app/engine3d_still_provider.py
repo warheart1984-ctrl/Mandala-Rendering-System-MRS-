@@ -98,6 +98,9 @@ def engine3d_still_availability(settings: Settings) -> dict[str, Any]:
             "Face structure: mrs/assets/human/HumanFaceRigged.glb (fixture) or operator GLB. "
             "See ENGINE3D_FACE_STRUCTURE_SPEC_v1.0."
         ),
+            "Optional polish via existing img2img path. NOT RT4D sphere-bridge for faces. "
+            + ("" if available else ENGINE3D_STILL_SETUP_HELP)
+        ),
     }
 
 
