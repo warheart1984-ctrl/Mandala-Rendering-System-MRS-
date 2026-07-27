@@ -109,6 +109,10 @@ export {
   assignRt4dMaterials,
   type Rt4dVertexTuple,
 } from "./scene/Rt4dAdapter.js";
+  createWorldGenerator,
+  generateWorldFromGenerator,
+  hashWorldGenerator,
+} from "./world/WorldGenerator.js";
 export {
   hashStaticMesh,
   hashStaticMeshTable,
@@ -277,10 +281,6 @@ export type {
   SceneBridgeCaptureInput,
   Engine3DFrameRenderRequest,
   Engine3DFrameRenderReceipt,
-  Engine3dStillRequest,
-  Engine3dStillResult,
-  Engine3dStructureRecord,
-  StructureSource,
   EvidenceRecordV12,
   EvidenceRecordV20,
   EvidenceRecordV21,
@@ -321,7 +321,6 @@ export {
   renderEngine3dFrame,
   renderEngine3dStill,
   ENGINE3D_FRAME_RECEIPT_MODE,
-  ENGINE3D_STRUCTURE_RECORD_SCHEMA,
   EvidenceBuilderV12,
   EvidenceBuilderV20,
   EvidenceBuilderV21,
