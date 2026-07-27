@@ -109,6 +109,10 @@ export {
   assignRt4dMaterials,
   type Rt4dVertexTuple,
 } from "./scene/Rt4dAdapter.js";
+  createWorldGenerator,
+  generateWorldFromGenerator,
+  hashWorldGenerator,
+} from "./world/WorldGenerator.js";
 export {
   hashStaticMesh,
   hashStaticMeshTable,
