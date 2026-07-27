@@ -43,6 +43,8 @@ from app.engine3d_still_provider import (
     engine3d_still_availability,
     generate_engine3d_still,
     resolve_engine3d_cli_path,
+    engine3d_still_availability,
+    generate_engine3d_still,
 )
 from app.face_polish_defaults import (
     resolve_face_polish_prompt,
@@ -220,6 +222,7 @@ class _ChatgptPluginAuthMiddleware(BaseHTTPMiddleware):
         expected_header = f"Bearer {expected}"
         # Constant-time compare; mismatched lengths still return False safely.
         if hmac.compare_digest(auth, expected_header):
+        if auth == f"Bearer {expected}":
             return await call_next(request)
         return JSONResponse(
             status_code=401,
@@ -232,6 +235,8 @@ class _ChatgptPluginAuthMiddleware(BaseHTTPMiddleware):
 
 # CORS: local operator UIs by default; widen only when GENBLAZE_CORS_ALLOW_ALL=1.
 # CHATGPT_PLUGIN_KEY enables bearer auth only — it does not auto-open CORS.
+# CORS: local operator UIs by default; widen when GENBLAZE_CORS_ALLOW_ALL=1
+# (or when CHATGPT_PLUGIN_KEY is set — see load_settings).
 _cors_settings = get_settings()
 _cors_origins: list[str] | str
 if _cors_settings.cors_allow_all:
@@ -1202,6 +1207,11 @@ def api_engine3d_still(body: Engine3dStillRequest) -> dict:
         # Allow empty prompt — face defaults applied later if face_rig; otherwise
         # resolve_face_polish_prompt still returns a generic cinematic prompt.
         pass
+    if body.polish and not (body.prompt or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="prompt is required when polish=true",
+        )
     if body.polish and not settings.polish_enabled:
         raise HTTPException(
             status_code=503,
@@ -1229,6 +1239,9 @@ def api_engine3d_still(body: Engine3dStillRequest) -> dict:
         )
     except Engine3dStillPathError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+            world_path=body.world_path,
+            human_glb=body.human_glb,
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Engine3dStillError as exc:
@@ -1364,6 +1377,10 @@ def api_engine3d_still(body: Engine3dStillRequest) -> dict:
                     "diffusion does not geometrically lock silhouette."
                 ),
             }
+                prompt=str(body.prompt).strip(),
+                strength=body.polish_strength,
+            )
+            payload["polish"] = polish_payload
         except HTTPException:
             raise
         except Exception as exc:  # noqa: BLE001

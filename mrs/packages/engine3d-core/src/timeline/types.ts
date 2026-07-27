@@ -13,6 +13,7 @@ export type TrackTarget =
   | "custom"
   | "face_bone"
   | "face_blendshape";
+export type TrackTarget = "camera" | "mesh" | "material" | "custom";
 
 export type KeyframeValue =
   | number

@@ -27,6 +27,7 @@ from app.engine3d_still_provider import (
     Engine3dStillPathError,
     engine3d_still_availability,
     resolve_engine3d_cli_path,
+    engine3d_still_availability,
 )
 from app.main import app
 from app.pipeline import GenerateResult
@@ -326,6 +327,11 @@ def test_api_engine3d_still_polish_requires_prompt(tmp_path, monkeypatch):
     body = resp.json()
     assert "polish" in body
     assert body.get("face_polish", {}).get("face_rig") is True
+
+    main_mod._index = AssetIndex(tmp_path / "recent.json")
+    client = TestClient(app)
+    resp = client.post("/api/engine3d-still", json={"polish": True})
+    assert resp.status_code == 400
 
 
 def test_engine3d_sequence_availability_shape():
