@@ -1,7 +1,7 @@
-"""AnimeWorldProfile load + field validation (skeleton).
+"""AnimeWorldProfile load + field validation (v1.0 contract — partial).
 
 Drive-G-1 honesty:
-  - Validates JSON shape against the v1 required-field contract.
+  - Validates JSON shape against the v1.0 required-field contract.
   - Does **not** call CKL, Amendment VIII, or Engine3D ink-cel gates.
   - Shot-level enforcement against a live profile is **declared**.
   - Extends the Genblaze anime look lane; does not invent a third style system.
@@ -10,6 +10,7 @@ Drive-G-1 honesty:
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -17,8 +18,11 @@ SCHEMA_VERSION = "1.0.0"
 # Mirror style_steer.STYLE_ANIME — avoid circular import with style_steer health wire.
 PREFERRED_STYLE_ID = "anime"
 PROFILE_STATUS_SKELETON = "skeleton"
-VALIDATION_STATUS = "skeleton"
+PROFILE_STATUS_PARTIAL = "partial"
+VALIDATION_STATUS = "partial"
 ENFORCEMENT_STATUS = "declared"
+
+_HEX_COLOR = re.compile(r"^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$")
 
 REQUIRED_TOP_LEVEL = (
     "profileId",
@@ -89,6 +93,17 @@ def validate_anime_world_profile(profile: dict[str, Any]) -> list[str]:
     if isinstance(palette, dict):
         if "roles" not in palette or "maxDistinctHues" not in palette:
             issues.append("color_palette-incomplete")
+        else:
+            roles = palette.get("roles")
+            if not isinstance(roles, dict) or len(roles) < 1:
+                issues.append("color_palette-roles-empty")
+            elif isinstance(roles, dict):
+                for name, hex_color in roles.items():
+                    if not isinstance(hex_color, str) or not _HEX_COLOR.match(hex_color):
+                        issues.append(f"color_palette-role-bad-hex:{name}")
+            hues = palette.get("maxDistinctHues")
+            if not isinstance(hues, int) or hues < 2 or hues > 64:
+                issues.append("color_palette-maxDistinctHues-range")
     elif "color_palette" in profile:
         issues.append("color_palette-not-object")
 
@@ -97,6 +112,13 @@ def validate_anime_world_profile(profile: dict[str, Any]) -> list[str]:
         for k in ("bandCount", "boundaries", "levels"):
             if k not in shadows:
                 issues.append(f"shadow_steps-missing:{k}")
+        levels = shadows.get("levels")
+        boundaries = shadows.get("boundaries")
+        if isinstance(levels, list) and isinstance(boundaries, list):
+            if len(levels) < 2:
+                issues.append("shadow_steps-levels-short")
+            if len(boundaries) < 1:
+                issues.append("shadow_steps-boundaries-empty")
     elif "shadow_steps" in profile:
         issues.append("shadow_steps-not-object")
 
@@ -111,6 +133,10 @@ def validate_anime_world_profile(profile: dict[str, Any]) -> list[str]:
     mats = profile.get("material_classes")
     if mats is not None and (not isinstance(mats, list) or len(mats) < 1):
         issues.append("material_classes-empty")
+    elif isinstance(mats, list):
+        for i, mat in enumerate(mats):
+            if not isinstance(mat, dict) or "id" not in mat or "shading" not in mat:
+                issues.append(f"material_classes-item-incomplete:{i}")
 
     face = profile.get("facial_proportion_profile")
     if isinstance(face, dict):
@@ -124,6 +150,8 @@ def validate_anime_world_profile(profile: dict[str, Any]) -> list[str]:
     if isinstance(motion, dict):
         if "fps" not in motion or "easingBias" not in motion:
             issues.append("motion_timing-incomplete")
+        elif motion.get("fps") not in (12, 24, 30):
+            issues.append(f"motion_timing-fps-invalid:{motion.get('fps')}")
     elif "motion_timing" in profile:
         issues.append("motion_timing-not-object")
 
@@ -144,6 +172,10 @@ def validate_anime_world_profile(profile: dict[str, Any]) -> list[str]:
     cont = profile.get("continuity_invariants")
     if cont is not None and (not isinstance(cont, list) or len(cont) < 1):
         issues.append("continuity_invariants-empty")
+    elif isinstance(cont, list):
+        for i, inv in enumerate(cont):
+            if not isinstance(inv, dict) or "id" not in inv or "rule" not in inv:
+                issues.append(f"continuity_invariants-item-incomplete:{i}")
 
     prov = profile.get("provenance_requirements")
     if isinstance(prov, dict):
@@ -214,7 +246,7 @@ def anime_profile_health_fragment(
     settings_style: str | None = None,
     profile_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Honest /health fragment for profile governance (skeleton)."""
+    """Honest /health fragment for profile governance (partial validation)."""
     style = (settings_style or "").strip().lower() or "default"
     fragment: dict[str, Any] = {
         "validation_status": VALIDATION_STATUS,

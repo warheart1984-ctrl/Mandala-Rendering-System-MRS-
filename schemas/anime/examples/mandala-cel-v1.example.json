@@ -1,7 +1,7 @@
 {
   "profileId": "anime.mandala-cel.v1",
   "schemaVersion": "1.0.0",
-  "status": "skeleton",
+  "status": "partial",
   "displayName": "Mandala Cel v1",
   "entryPoint": "constitutional-anime-rendering",
   "color_palette": {

@@ -114,7 +114,7 @@ def style_health_payload(settings_style: str | None) -> dict[str, Any]:
         "api_field": "style",
         "entry_point": "constitutional-anime-rendering",
     }
-    # AnimeWorldProfile governance is skeleton; enforcement remains declared.
+    # AnimeWorldProfile governance validation is partial; enforcement remains declared.
     payload["anime_world_profile"] = anime_profile_health_fragment(
         settings_style=resolved
     )

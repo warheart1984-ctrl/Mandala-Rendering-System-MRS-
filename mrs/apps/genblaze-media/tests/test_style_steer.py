@@ -63,7 +63,7 @@ def test_style_health_payload():
     assert payload["entry_point"] == "constitutional-anime-rendering"
     awp = payload["anime_world_profile"]
     assert awp["enforcement_status"] == "declared"
-    assert awp["validation_status"] == "skeleton"
+    assert awp["validation_status"] == "partial"
     assert awp.get("example_valid") is True
 
 

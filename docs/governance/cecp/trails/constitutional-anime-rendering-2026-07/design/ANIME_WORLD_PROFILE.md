@@ -1,8 +1,10 @@
 # AnimeWorldProfile — Design Contract
 
-**Status:** `skeleton` (schema + example + Genblaze field validator)  
+**Status:** `partial` (schema + example + Genblaze field validator — v1.0 contract)  
 **Enforcement:** `declared` (no CKL deny / no render abort on profile mismatch)  
-**Trail:** `constitutional-anime-rendering-2026-07`
+**Trail:** `constitutional-anime-rendering-2026-07`  
+**Render Constitution:** `docs/governance/RENDER_CONSTITUTION_ANIME.md`  
+**Lane lock:** [LANE_LOCK.md](../LANE_LOCK.md)
 
 ## Thesis
 

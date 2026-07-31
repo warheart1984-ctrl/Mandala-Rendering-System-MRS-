@@ -9,7 +9,7 @@ Thin **FastAPI** service: user prompt → **Genblaze** (`genblaze-nvidia` + `gen
 | RT4D image backend | **Prepared** — `GENBLAZE_IMAGE_BACKEND=rt4d` shells out to renderer-core `render-still.mjs` for deterministic procedural 4D stills (NOT text-to-image). Requires Node; the **repo-root** Dockerfile bundles Node 22 + renderer-core; the app-local one cannot. Live Render RT4D is only verified after Manual Deploy + `/health.rt4d.available: true` |
 | Image → SceneSpecification | **Prepared** — `POST /api/image-to-scene` interprets a still (NIM vision or heuristic) into SceneSpecification, then MRS path-traces a full frame. **Not** geometric reconstruction / photogrammetry |
 | Engine3D structure → polish | **Prepared** — `POST /api/engine3d-still` soft-rasters Engine3D triangles (beauty + depth/normal), optional RT4D background composite, optional fal FLUX img2img polish. Faces/skin = polish, not RT4D sphere-bridge |
-| Media look lane (`style=anime`) | **Partial** — preferred **Constitutional Anime Rendering** entry point (`GENBLAZE_STYLE=anime` / API `"style":"anime"` steers FLUX / Lemonade / polish). `AnimeWorldProfile` schema/validator is **skeleton**; shot enforcement **declared**. Not Full Photoreal; Cycles `external-pbr` remains optional. RT4D structure pixels ignore anime steer (use diffusion for look). Trail: `docs/governance/cecp/trails/constitutional-anime-rendering-2026-07/` |
+| Media look lane (`style=anime`) | **Partial** — preferred **Constitutional Anime Rendering** entry point (`GENBLAZE_STYLE=anime` / API `"style":"anime"` steers FLUX / Lemonade / polish). `AnimeWorldProfile` v1.0 validator is **partial**; shot CKL enforcement **declared**. Pipeline CLI: `python -m app.constitutional_anime_render` / `npm run render:constitutional-anime`. Lane lock: structure vs beauty (`LANE_LOCK.md`). Not Full Photoreal. Trail: `docs/governance/cecp/trails/constitutional-anime-rendering-2026-07/` |
 | Engine3D short cinematic sequence | **Prepared** — `POST /api/engine3d-sequence` soft-rasters a short orbit clip (structure AOVs). NOT 8K farm; NOT per-frame polish. See `docs/4d-engine/engine3d/ENGINE3D_CINEMATIC_FOUNDATION_v1.0.md` |
 | Prompt → SceneSpecification | **Prepared** — `POST /api/prompt-to-scene` shells out to prompt-scene-bridge for SceneSpecification + Engine3D world stub. Repo-root Docker **Prepared**/bundling **partial**: COPY → `/app/prompt-scene-bridge/` + `PROMPT_SCENE_BRIDGE_SCRIPT` / `ENGINE3D_EXPAND_SCRIPT` / `PROMPT_SCENE_EXPAND_WORLD=0` until Manual Deploy proves `/health.prompt_scene.available: true`. Optional `render=true` uses SceneSpecification → RT4D (**partial** when Node/script missing; do **not** claim live Render enforced). Infinity narrative lane is **out-of-process only** (banned under `app/*.py`). World geometry arrays remain a stub until expand (`PROMPT_SCENE_EXPAND_WORLD=1` opt-in) |
 | ChatGPT / Custom GPT plugin | **Prepared** — `/.well-known/ai-plugin.json` + scoped `/plugin/openapi.json` for Engine3D stills. Classic Plugins storefront is **sunset**; use **Custom GPT Actions**. Optional `CHATGPT_PLUGIN_KEY` bearer |
@@ -30,12 +30,15 @@ Operators type a prompt for a concept image. The **default** service calls NVIDI
 Product thesis: hardware limits become design decisions; the engine produces
 **governed stylization** (same character, palette, lighting, line, continuity).
 Photoreal Cycles is an **optional** side path, not the apology baseline.
-Profile contract: `schemas/anime/AnimeWorldProfile.v1.schema.json` (**skeleton**).
+Profile contract: `schemas/anime/AnimeWorldProfile.v1.schema.json` (**partial** v1.0).
+Render Constitution: `docs/governance/RENDER_CONSTITUTION_ANIME.md`.
+Pipeline: `python -m app.constitutional_anime_render` (structure → painter|structure-only → provenance).
 
 | Invoke | How |
 | --- | --- |
 | Env | `GENBLAZE_STYLE=anime` |
 | API | `POST /api/generate` with `"style": "anime"` (also polish / engine3d-still) |
+| CLI | `npm run render:constitutional-anime` or `python -m app.constitutional_anime_render` |
 | Health | `GET /health` → `media_style.anime_status: "partial"` |
 
 ```bash

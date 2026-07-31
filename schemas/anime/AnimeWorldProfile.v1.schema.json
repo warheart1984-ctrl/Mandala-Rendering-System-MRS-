@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://4dce.local/schemas/anime/AnimeWorldProfile.v1.schema.json",
   "title": "AnimeWorldProfile",
-  "description": "Governed stylization profile for Constitutional Anime Rendering. Status: skeleton (schema + example + Genblaze field validator). Runtime CKL shot-gate enforcement is declared, not enforced.",
+  "description": "AnimeWorldProfile v1.0 contract for Constitutional Anime Rendering. Validation status: partial (hand validator + schema). Runtime CKL shot-gate enforcement remains declared. See docs/governance/RENDER_CONSTITUTION_ANIME.md.",
   "type": "object",
   "additionalProperties": false,
   "required": [

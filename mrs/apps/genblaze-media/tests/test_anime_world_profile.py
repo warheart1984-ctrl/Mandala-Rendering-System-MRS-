@@ -1,4 +1,4 @@
-"""Tests for AnimeWorldProfile skeleton validator."""
+"""Tests for AnimeWorldProfile v1.0 validator (partial)."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ def test_example_profile_validates():
     assert issues == [], issues
     assert profile["schemaVersion"] == SCHEMA_VERSION
     assert profile["profileId"] == "anime.mandala-cel.v1"
+    assert profile["status"] == "partial"
     assert profile["bindings"]["genblazeStyle"] == "anime"
 
 
@@ -31,10 +32,17 @@ def test_missing_fields_reported():
     assert "missing:color_palette" in issues
 
 
+def test_bad_hex_reported():
+    profile = load_anime_world_profile(default_example_path())
+    profile["color_palette"]["roles"]["key"] = "not-a-color"
+    issues = validate_anime_world_profile(profile)
+    assert any(i.startswith("color_palette-role-bad-hex:") for i in issues)
+
+
 def test_gate_points_declared_not_enforced():
     gates = profile_gate_points()
     assert gates["enforcement_status"] == "declared"
-    assert gates["validation_status"] == "skeleton"
+    assert gates["validation_status"] == "partial"
     ids = {g["id"] for g in gates["gate_points"]}
     assert "genblaze-style-steer" in ids
     assert "ckl-world-profile-bridge" in ids
