@@ -49,6 +49,21 @@ architecture.
 | `world-engine-probe-2026-07` | Amendment VII soft gates; Amendment VIII world profiles | VII **partial**; world engine HOLD |
 | Photoreal / Cycles / CPCS trails | Optional side path | optional — not entry point |
 
+## Continuity 5-shot demo
+
+Governed cycle proving the product story (same two characters · 3 angles ·
+changing lighting · one 4D-portal transform · dual-run evidence):
+
+- Spec: [CONTINUITY_5SHOT.md](./CONTINUITY_5SHOT.md)
+- Shot plan: `schemas/anime/examples/continuity-5shot.shot-plan.json`
+- Runner: `mrs/packages/engine3d-core/scripts/run-anime-continuity-5shot.mjs`
+- Local out: `tmp/constitutional-anime-continuity-5shot/` (gitignored)
+
+```bash
+cd mrs/packages/engine3d-core
+npm run render:anime-continuity-5shot -- --out-dir ../../../tmp/constitutional-anime-continuity-5shot
+```
+
 ## Honest non-claims
 
 - Not Full Photoreal

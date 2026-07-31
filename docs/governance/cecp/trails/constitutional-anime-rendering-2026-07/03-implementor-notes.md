@@ -40,3 +40,12 @@ python -m pytest tests/test_anime_world_profile.py tests/test_style_steer.py -q
 Map `mandala-cel-v1` `shadow_steps` + `outline_rules` into Engine3D
 `InkOptions` when implementing ink-cel; thread `anime_world_profile_id` into
 Genblaze manifests; add opt-in replay fixture that freezes profile params.
+
+## Continuity 5-shot follow-on (2026-07-31)
+
+Delivered governed continuity package (see [CONTINUITY_5SHOT.md](./CONTINUITY_5SHOT.md)):
+
+- Shot plan + `ContinuityShotEvidence` schema
+- Engine3D runner with dual-run frozen-param replay (**enforced** this cycle)
+- Local plates under `tmp/constitutional-anime-continuity-5shot/`
+- Cel/ink remains a **partial** profile-aligned post proxy until ink-cel InkOptions land
