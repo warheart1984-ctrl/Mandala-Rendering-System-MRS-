@@ -528,6 +528,50 @@ def build_assertion(
     )
 
 
+def resolve_anime_claim(
+    *,
+    profile: dict[str, Any] | None,
+    lane: str,
+    polish_backend: str,
+    beauty_bytes: bytes | None,
+    structure_bytes: bytes | None = None,
+    profile_issues: list[str] | None = None,
+) -> tuple[bool, str]:
+    """Fail-closed Genblaze gate for ``anime_claim`` (CKL policy remains declared).
+
+    ``anime_claim: true`` is allowed only when:
+      1) AnimeWorldProfile validates and exposes a non-empty ``profileId``
+      2) beauty lane produced polish pixels (not structure-only / identity copy)
+
+    Returns ``(anime_claim, reason)``.
+    """
+    if profile is None:
+        return False, "deny: missing AnimeWorldProfile"
+    issues = (
+        list(profile_issues)
+        if profile_issues is not None
+        else validate_anime_world_profile(profile)
+    )
+    profile_id = str(profile.get("profileId") or "").strip()
+    if not profile_id:
+        return False, "deny: missing anime_world_profile_id"
+    if issues:
+        preview = "; ".join(issues[:3])
+        return False, f"deny: AnimeWorldProfile invalid ({preview})"
+    if lane == LANE_STRUCTURE_ONLY or polish_backend == BACKEND_NONE:
+        return False, "deny: structure-only / no beauty pixels"
+    if lane != LANE_BEAUTY:
+        return False, f"deny: lane `{lane}` is not beauty"
+    if not beauty_bytes:
+        return False, "deny: beauty pixels absent"
+    if structure_bytes is not None and beauty_bytes == structure_bytes:
+        return False, "deny: beauty pixels identical to structure (no polish)"
+    return (
+        True,
+        f"allow: validated profile `{profile_id}` + beauty via `{polish_backend}`",
+    )
+
+
 def apply_cel_proxy_png(structure_png: bytes, profile: dict[str, Any]) -> bytes:
     """Local cel banding + crude ink — always-available partial beauty backend.
 
@@ -776,8 +820,13 @@ def run_beauty_stage(
     painter_pref: str,
     allow_cel_proxy: bool,
     probe_map: dict[str, PainterProbe] | None = None,
+    profile_issues: list[str] | None = None,
 ) -> tuple[bytes, str, str, bool, str]:
-    """Return (beauty_bytes, lane, backend, anime_claim, detail)."""
+    """Return (beauty_bytes, lane, backend, anime_claim, detail).
+
+    ``anime_claim`` is fail-closed via :func:`resolve_anime_claim` — never true
+    without a validated profile id and distinct beauty pixels.
+    """
     palette = (profile.get("color_palette") or {}).get("roles") or {}
     palette_hint = ", ".join(f"{k} {v}" for k, v in list(palette.items())[:5])
     base_prompt = (
@@ -802,42 +851,69 @@ def run_beauty_stage(
         order = [painter_pref]
 
     details: list[str] = []
-    for backend in order:
-        probe = probes.get(backend)
-        if backend == BACKEND_FAL:
+    beauty_bytes: bytes = structure_png
+    lane: str = LANE_STRUCTURE_ONLY
+    backend: str = BACKEND_NONE
+    for candidate in order:
+        probe = probes.get(candidate)
+        if candidate == BACKEND_FAL:
             if probe is None or not probe.available:
                 details.append(probe.detail if probe else "fal: not probed")
                 continue
             pixels, detail = try_fal_polish(structure_png, steered)
             details.append(detail)
             if pixels:
-                return pixels, LANE_BEAUTY, BACKEND_FAL, True, detail
-        elif backend == BACKEND_LEMONADE:
+                beauty_bytes, lane, backend = pixels, LANE_BEAUTY, BACKEND_FAL
+                break
+        elif candidate == BACKEND_LEMONADE:
             if probe is None or not probe.available:
                 details.append(probe.detail if probe else "lemonade: not probed")
                 continue
             pixels, detail = try_lemonade_t2i(steered)
             details.append(detail)
             if pixels:
-                # T2I does not preserve structure — claim anime look but note gap.
-                return pixels, LANE_BEAUTY, BACKEND_LEMONADE, True, detail
-        elif backend == BACKEND_CEL_PROXY:
+                # T2I does not preserve structure — claim only if gate allows.
+                beauty_bytes, lane, backend = pixels, LANE_BEAUTY, BACKEND_LEMONADE
+                break
+        elif candidate == BACKEND_CEL_PROXY:
             if not allow_cel_proxy:
                 details.append("cel-proxy disabled")
                 continue
-            pixels = apply_cel_proxy_png(structure_png, profile)
-            detail = "cel-proxy: local banding+ink (partial anime; not diffusion)"
-            details.append(detail)
-            return pixels, LANE_BEAUTY, BACKEND_CEL_PROXY, True, detail
+            beauty_bytes = apply_cel_proxy_png(structure_png, profile)
+            lane, backend = LANE_BEAUTY, BACKEND_CEL_PROXY
+            details.append(
+                "cel-proxy: local banding+ink (partial anime; not diffusion)"
+            )
+            break
 
-    # Fail closed — structure-only
+    anime_claim, gate_reason = resolve_anime_claim(
+        profile=profile,
+        lane=lane,
+        polish_backend=backend,
+        beauty_bytes=beauty_bytes,
+        structure_bytes=structure_png,
+        profile_issues=profile_issues,
+    )
+    if not anime_claim and lane == LANE_BEAUTY:
+        # Painter ran but claim denied (invalid profile / identity pixels) —
+        # relabel as structure-only so manifests stay honest.
+        lane = LANE_STRUCTURE_ONLY
+        backend = BACKEND_NONE
+        beauty_bytes = structure_png
+        detail = f"structure-only fail-closed ({gate_reason})"
+        return beauty_bytes, lane, backend, False, detail
+
+    if anime_claim:
+        painter_detail = details[-1] if details else gate_reason
+        return beauty_bytes, lane, backend, True, f"{painter_detail} | {gate_reason}"
+
     detail = " | ".join(details) if details else "painter skipped"
     return (
         structure_png,
         LANE_STRUCTURE_ONLY,
         BACKEND_NONE,
         False,
-        f"structure-only fallback ({detail})",
+        f"structure-only fallback ({detail}) | {gate_reason}",
     )
 
 
@@ -903,16 +979,23 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
     profile_path = Path(args.profile).resolve() if args.profile else default_example_path()
     profile = load_anime_world_profile(profile_path)
     issues = validate_anime_world_profile(profile)
-    if issues:
-        raise ValueError(f"AnimeWorldProfile invalid: {issues}")
+    profile_id = str(profile.get("profileId") or "").strip()
+    if not profile_id or issues:
+        raise ValueError(
+            "AnimeWorldProfile invalid or missing profileId "
+            f"(fail-closed; cannot emit anime_claim): issues={issues or ['missing:profileId']}"
+        )
 
     stages: list[StageResult] = []
     stages.append(
         StageResult(
             stage="0-profile",
             status="ok",
-            detail=f"validated {profile.get('profileId')} ({len(issues)} issues)",
-            artifacts={"profile_path": str(profile_path)},
+            detail=f"validated {profile_id} ({len(issues)} issues)",
+            artifacts={
+                "profile_path": str(profile_path),
+                "anime_world_profile_id": profile_id,
+            },
         )
     )
 
@@ -935,7 +1018,23 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
         painter_pref=args.painter,
         allow_cel_proxy=not args.no_cel_proxy,
         probe_map={p.backend: p for p in probes},
+        profile_issues=issues,
     )
+    # Final fail-closed re-check before any manifest write.
+    anime_claim, claim_gate_reason = resolve_anime_claim(
+        profile=profile,
+        lane=lane,
+        polish_backend=backend,
+        beauty_bytes=beauty_bytes,
+        structure_bytes=structure_bytes,
+        profile_issues=issues,
+    )
+    if not anime_claim and lane == LANE_BEAUTY:
+        lane = LANE_STRUCTURE_ONLY
+        backend = BACKEND_NONE
+        beauty_bytes = structure_bytes
+        beauty_detail = f"structure-only fail-closed ({claim_gate_reason})"
+
     beauty_path = out_dir / ("beauty.png" if anime_claim else "structure-only.png")
     # Always also write final.png for a stable viewer path
     final_path = out_dir / "final.png"
@@ -951,6 +1050,8 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
                 "lane": lane,
                 "polish_backend": backend,
                 "anime_claim": anime_claim,
+                "anime_claim_gate": claim_gate_reason,
+                "anime_world_profile_id": profile_id,
                 "beauty_png": str(beauty_path),
                 "final_png": str(final_path),
             },
@@ -1020,6 +1121,7 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
             if anime_claim and backend == BACKEND_CEL_PROXY
             else ("partial" if anime_claim else "blocked")
         ),
+        "anime_claim_gate": "enforced",
         "cel_proxy_replay": "enforced" if backend == BACKEND_CEL_PROXY and continuity_ok else "n/a",
         "diffusion_replay": "declared",
         "ckl_gate": "declared",
@@ -1062,7 +1164,7 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
         nonClaims=[
             "Not Full Photoreal",
             "Not Digital Printer beauty SoT",
-            "Not CKL-enforced shot gate",
+            "Not CKL-enforced shot gate (Genblaze anime_claim_gate is unit-tested; CKL policy remains declared)",
             "Diffusion beauty replay remains declared unless seed-stable tests pass",
             "Lemonade SD may be blocked when sd-server / pixelsProduced is false",
         ],

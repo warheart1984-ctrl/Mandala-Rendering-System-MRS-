@@ -12,6 +12,22 @@ Every cycle answers:
 
 ---
 
+## 2026-07-31 — Fail-closed AnimeWorldProfile claim gate (Genblaze)
+
+| Field | Value |
+|-------|-------|
+| Module | `mrs/apps/genblaze-media/app/constitutional_anime_render.py` |
+| Gate | `resolve_anime_claim` — **enforced** in Genblaze unit tests |
+| CKL policy | Still **declared** (no `default.policies.json` edit) |
+| Doctrine slice | `docs/governance/DIMENSIONAL_COMPRESSION.md` §7 |
+
+1. **Improved / happened:** Manifests require validated `anime_world_profile_id`; `anime_claim: true` only with validated profile + distinct beauty pixels (diffusion or cel-proxy). Structure-only / invalid profile / identity pixels deny the claim.
+2. **Artificial / gaps:** CKL runtime deny remains **declared**; shot-level generate API does not yet require profile id; diffusion beauty replay still **declared**.
+3. **Measured:** `tests/test_constitutional_anime_render.py` deny + allow paths for `resolve_anime_claim` / pipeline.
+4. **Next bottleneck:** Wire profile id onto Genblaze generate/polish receipts; optional CKL policy only with explicit auth.
+
+---
+
 ## 2026-07-31 — Dimensional Compression formalized (methodology)
 
 | Field | Value |
@@ -24,7 +40,7 @@ Every cycle answers:
 1. **Improved / happened:** Made explicit the three-layer compression law CIEMS/MRS already use intuitively (Arena → Invariants → Execution); bound it to anime profile/lane/continuity artifacts without amending the charter.
 2. **Artificial / gaps:** Principle not runtime-gated; JCK/JCR/CEL expansions remain undeclared tokens where missing; anime CKL deny still **declared**.
 3. **Measured:** Docs + cross-links only this cycle (no new pixel probes).
-4. **Next bottleneck:** Fail-closed `anime_world_profile_id` + deny `anime_claim: true` without validated profile / beauty pixels.
+4. **Next bottleneck:** Fail-closed `anime_world_profile_id` + deny `anime_claim: true` without validated profile / beauty pixels. *(landed — see entry above)*
 
 ---
 

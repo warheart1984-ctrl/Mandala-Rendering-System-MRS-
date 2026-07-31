@@ -152,3 +152,5 @@ beauty lane did not produce pixels** — tested in Genblaze unit tests; CKL
 policy remain **declared** until explicit auth to amend `default.policies.json`.
 
 See trail `01-architect-adr.md` for handoff order.
+**Landed (partial):** Genblaze `resolve_anime_claim` — trail
+`dimensional-compression-2026-07/03-implementor-notes.md`.

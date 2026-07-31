@@ -5,7 +5,7 @@
 | `trailId` | `dimensional-compression-2026-07` |
 | `feature` | Formalize Principle of Dimensional Compression; apply to Constitutional Anime + CIEMS |
 | `started` | 2026-07-31 |
-| `overallStatus` | **declared** (methodology) · applied worksheets **partial** (bind existing evidence) |
+| `overallStatus` | **declared** (methodology) · applied worksheets **partial** · Genblaze claim gate **partial**/enforced in unit tests (CKL still **declared**) |
 | `mode` | Sage + Theorist + Cartographer + Anchor |
 | `softwareCreationMode` | Architect-Kernel + Protocol + Conformance |
 | `PromotionEligibility` | **N/A** — docs/methodology trail (no product ship gate); Architect-only formalization |
@@ -25,6 +25,7 @@ mapping on today's Constitutional Anime Rendering system.
 | [01-architect-adr.md](./01-architect-adr.md) | Architect Sage ADR |
 | [APPLIED_EXERCISE.md](./APPLIED_EXERCISE.md) | Arena / Invariants / Execution worksheets |
 | [ACRONYM_MAP.md](./ACRONYM_MAP.md) | JCK…CCC → repo paths + status tags |
+| [03-implementor-notes.md](./03-implementor-notes.md) | Fail-closed `anime_claim` slice (Genblaze) |
 
 ## Related trails (bind, do not fork)
 

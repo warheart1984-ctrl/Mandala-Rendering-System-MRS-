@@ -14,6 +14,11 @@ import sys
 
 from PIL import Image
 
+from app.anime_world_profile import (
+    default_example_path,
+    load_anime_world_profile,
+    validate_anime_world_profile,
+)
 from app.constitutional_anime_render import (
     BACKEND_CEL_PROXY,
     BACKEND_FAL,
@@ -27,6 +32,7 @@ from app.constitutional_anime_render import (
     probe_fal,
     probe_lemonade,
     probe_nvidia,
+    resolve_anime_claim,
     run_beauty_stage,
     run_pipeline,
 )
@@ -85,12 +91,12 @@ def _tiny_png_bytes(color=(180, 90, 40)) -> bytes:
 
 
 def _profile_dict() -> dict:
-    return {
-        "profileId": "anime.test.v1",
-        "color_palette": {"roles": {"key": "#00d0ff", "accent": "#ff5ec4"}},
-        "shadow_steps": {"boundaries": [0.3, 0.7], "levels": [0.18, 0.62, 1.0]},
-        "outline_rules": {"inkStrength": 0.85, "inkColor": [0.05, 0.05, 0.08]},
-    }
+    """Validated example profile — claim gate requires full contract shape."""
+    return load_anime_world_profile(default_example_path())
+
+
+def _invalid_profile_dict() -> dict:
+    return {"profileId": "anime.broken.v1", "schemaVersion": "1.0.0"}
 
 
 def _pipeline_args(tmp_path, **overrides) -> argparse.Namespace:
@@ -442,9 +448,12 @@ def test_run_pipeline_structure_only_labels_honest(tmp_path, monkeypatch):
     assert manifest.lane == LANE_STRUCTURE_ONLY
     assert manifest.polish_backend == BACKEND_NONE
     assert manifest.anime_claim is False
+    assert manifest.anime_world_profile_id  # validated id still attached
     assert manifest.structure_sha256 == manifest.beauty_sha256  # identity fallback
     assert "structure-only" in manifest.assertion
     assert manifest.statusTags["beauty_lane"] == "blocked"
+    assert manifest.statusTags["anime_claim_gate"] == "enforced"
+    assert manifest.statusTags["ckl_gate"] == "declared"
 
     out = tmp_path / "out"
     assert (out / "render-manifest.json").is_file()
@@ -455,6 +464,9 @@ def test_run_pipeline_structure_only_labels_honest(tmp_path, monkeypatch):
     report = json.loads((out / "provenance-report.json").read_text(encoding="utf-8"))
     assert report["lane"] == LANE_STRUCTURE_ONLY
     assert report["continuity_ok"] is True
+    stage2 = next(s for s in manifest.stages if s["stage"] == "2-beauty")
+    assert stage2["artifacts"]["anime_claim"] is False
+    assert "deny:" in stage2["artifacts"]["anime_claim_gate"]
 
 
 def test_run_pipeline_cel_proxy_dual_apply_replay(tmp_path, monkeypatch):
@@ -476,8 +488,138 @@ def test_run_pipeline_cel_proxy_dual_apply_replay(tmp_path, monkeypatch):
     assert manifest.lane == LANE_BEAUTY
     assert manifest.polish_backend == BACKEND_CEL_PROXY
     assert manifest.anime_claim is True
+    assert manifest.anime_world_profile_id == "anime.mandala-cel.v1"
     assert manifest.structure_sha256 != manifest.beauty_sha256
+    assert manifest.provenance_hash
     assert manifest.statusTags["cel_proxy_replay"] == "enforced"
     assert manifest.statusTags["beauty_lane"] == "partial"
+    assert manifest.statusTags["anime_claim_gate"] == "enforced"
+    assert manifest.statusTags["ckl_gate"] == "declared"
     out = tmp_path / "out"
     assert (out / "beauty.png").is_file()
+    stage2 = next(s for s in manifest.stages if s["stage"] == "2-beauty")
+    assert "allow:" in stage2["artifacts"]["anime_claim_gate"]
+    assert stage2["artifacts"]["anime_world_profile_id"] == "anime.mandala-cel.v1"
+
+
+def test_resolve_anime_claim_deny_missing_profile_id():
+    claim, reason = resolve_anime_claim(
+        profile={"schemaVersion": "1.0.0"},
+        lane=LANE_BEAUTY,
+        polish_backend=BACKEND_CEL_PROXY,
+        beauty_bytes=b"beauty",
+        structure_bytes=b"structure",
+        profile_issues=[],
+    )
+    assert claim is False
+    assert "missing anime_world_profile_id" in reason
+
+
+def test_resolve_anime_claim_deny_invalid_profile():
+    bad = _invalid_profile_dict()
+    issues = validate_anime_world_profile(bad)
+    assert issues
+    png = _tiny_png_bytes()
+    beauty = apply_cel_proxy_png(png, _profile_dict())
+    claim, reason = resolve_anime_claim(
+        profile=bad,
+        lane=LANE_BEAUTY,
+        polish_backend=BACKEND_CEL_PROXY,
+        beauty_bytes=beauty,
+        structure_bytes=png,
+        profile_issues=issues,
+    )
+    assert claim is False
+    assert "invalid" in reason
+
+
+def test_resolve_anime_claim_deny_structure_only_no_beauty():
+    prof = _profile_dict()
+    png = _tiny_png_bytes()
+    claim, reason = resolve_anime_claim(
+        profile=prof,
+        lane=LANE_STRUCTURE_ONLY,
+        polish_backend=BACKEND_NONE,
+        beauty_bytes=png,
+        structure_bytes=png,
+        profile_issues=[],
+    )
+    assert claim is False
+    assert "structure-only" in reason
+
+
+def test_resolve_anime_claim_deny_identity_beauty_pixels():
+    prof = _profile_dict()
+    png = _tiny_png_bytes()
+    claim, reason = resolve_anime_claim(
+        profile=prof,
+        lane=LANE_BEAUTY,
+        polish_backend=BACKEND_CEL_PROXY,
+        beauty_bytes=png,
+        structure_bytes=png,
+        profile_issues=[],
+    )
+    assert claim is False
+    assert "identical to structure" in reason
+
+
+def test_resolve_anime_claim_allow_validated_profile_plus_beauty():
+    prof = _profile_dict()
+    png = _tiny_png_bytes((10, 20, 30))
+    beauty = apply_cel_proxy_png(png, prof)
+    claim, reason = resolve_anime_claim(
+        profile=prof,
+        lane=LANE_BEAUTY,
+        polish_backend=BACKEND_CEL_PROXY,
+        beauty_bytes=beauty,
+        structure_bytes=png,
+        profile_issues=validate_anime_world_profile(prof),
+    )
+    assert claim is True
+    assert "allow:" in reason
+    assert prof["profileId"] in reason
+    assert BACKEND_CEL_PROXY in reason
+
+
+def test_run_beauty_stage_invalid_profile_cannot_claim(monkeypatch):
+    monkeypatch.setenv("GENBLAZE_PROBE_LIVE", "0")
+    png = _tiny_png_bytes()
+    bad = _invalid_profile_dict()
+    issues = validate_anime_world_profile(bad)
+    beauty, lane, backend, claim, detail = run_beauty_stage(
+        structure_png=png,
+        profile=bad,
+        painter_pref="cel-proxy",
+        allow_cel_proxy=True,
+        probe_map={},
+        profile_issues=issues,
+    )
+    assert claim is False
+    assert lane == LANE_STRUCTURE_ONLY
+    assert backend == BACKEND_NONE
+    assert beauty == png
+    assert "fail-closed" in detail
+
+
+def test_run_pipeline_rejects_invalid_profile(tmp_path, monkeypatch):
+    monkeypatch.setenv("GENBLAZE_PROBE_LIVE", "0")
+    monkeypatch.setattr(
+        "app.constitutional_anime_render.probe_painters", lambda live=None: []
+    )
+    bad_path = tmp_path / "bad-profile.json"
+    bad_path.write_text(json.dumps(_invalid_profile_dict()), encoding="utf-8")
+    struct = tmp_path / "in-structure.png"
+    struct.write_bytes(_tiny_png_bytes())
+    args = _pipeline_args(
+        tmp_path,
+        structure=str(struct),
+        profile=str(bad_path),
+        painter="cel-proxy",
+        no_cel_proxy=False,
+    )
+    try:
+        run_pipeline(args)
+        raise AssertionError("expected ValueError for invalid profile")
+    except ValueError as exc:
+        assert "fail-closed" in str(exc)
+        assert "anime_claim" in str(exc)

@@ -216,9 +216,13 @@ def profile_gate_points() -> dict[str, Any]:
             },
             {
                 "id": "provenance-manifest",
-                "path": "ProvenanceFrame / genblaze manifest fields",
-                "status": "declared",
-                "note": "Require anime_world_profile_id + style on shot receipts when enforcement lands",
+                "path": "mrs/apps/genblaze-media/app/constitutional_anime_render.py",
+                "status": "partial",
+                "note": (
+                    "constitutional_anime_render manifests require validated "
+                    "anime_world_profile_id; anime_claim fail-closed in Genblaze "
+                    "(CKL policy still declared)"
+                ),
             },
             {
                 "id": "replay-service",
