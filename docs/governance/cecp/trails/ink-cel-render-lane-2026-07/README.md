@@ -4,9 +4,10 @@
 Implementor (build) → Inspector (probe) → ESFR (ship gate)
 
 **Product framing:** This lane is the Engine3D soft-raster *implementation slice*
-of **Constitutional Anime Rendering** (product entry point). See parent trail:
-[`constitutional-anime-rendering-2026-07`](../constitutional-anime-rendering-2026-07/)
-(`AnimeWorldProfile` maps `shadow_steps` / `outline_rules` → `InkOptions` when wired).
+of **Constitutional Anime Rendering** (product entry point). The governed style
+profile (`AnimeWorldProfile`) lives in this trail:
+[`ANIME_WORLD_PROFILE`](./design/ANIME_WORLD_PROFILE.md) (`shadow_steps` /
+`outline_rules` → `InkOptions`; `continuity_invariants` → replay checks).
 
 ## What
 
@@ -26,6 +27,7 @@ thread. Photoreal/Cycles remains an **optional** side path.
 
 - [01 — Architect ADR](./01-architect-adr.md)
 - [INK_CEL_SPEC](./design/INK_CEL_SPEC.md) — technical design contract
+- [ANIME_WORLD_PROFILE](./design/ANIME_WORLD_PROFILE.md) — governed style profile (Constitutional Anime Rendering)
 - [FILE_MANIFEST](./FILE_MANIFEST.md) — implementation file list
 - [ACCEPTANCE_CRITERIA](./ACCEPTANCE_CRITERIA.md) — testable gates
 
