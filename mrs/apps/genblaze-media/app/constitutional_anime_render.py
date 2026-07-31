@@ -9,6 +9,8 @@ Drive-G-1:
   - Never claim anime polish when painter failed.
   - Never commit secrets; fail closed on missing keys.
   - Diffusion beauty is assist — not Digital Printer / Full Photoreal SoT.
+  - Painter probes make live availability calls by default; set
+    GENBLAZE_PROBE_LIVE=0 for key-presence-only classification (offline).
 
 Usage:
   python -m app.constitutional_anime_render --out-dir ../../../tmp/constitutional-anime-render-v1
@@ -35,7 +37,12 @@ from app.anime_world_profile import (
     load_anime_world_profile,
     validate_anime_world_profile,
 )
+from app.config import _load_dotenv_files
 from app.style_steer import ANIME_STEER_SUFFIX, apply_style_steer
+
+# Match the app's canonical env source (repo-root .env then app-local .env,
+# override=False so process env / test monkeypatches win).
+_load_dotenv_files()
 
 PIPELINE_ID = "constitutional-anime-render"
 PIPELINE_VERSION = "1.0.0"
@@ -75,9 +82,25 @@ def _sha256_file(path: Path) -> str:
 @dataclass
 class PainterProbe:
     backend: str
-    available: bool
+    configured: bool
+    reachable: bool | None
+    operational: bool | None
+    verified: bool
+    last_verified: str | None
     detail: str
     env_vars_required: list[str] = field(default_factory=list)
+
+    @property
+    def available(self) -> bool:
+        """Run gate: live-verified operational, else configured (best effort).
+
+        ``available`` is an internal scheduling hint, not a claim. The public
+        report is the three-state ``configured`` / ``reachable`` / ``operational``
+        plus ``verified`` and ``last_verified`` timestamps.
+        """
+        if self.verified:
+            return bool(self.operational)
+        return self.configured
 
 
 @dataclass
@@ -119,7 +142,27 @@ class RenderManifest:
         return asdict(self)
 
 
-def probe_fal() -> PainterProbe:
+def _env_live() -> bool:
+    """Whether painter probes should make live calls.
+
+    Defaults to live (reality checks). Set ``GENBLAZE_PROBE_LIVE=0`` to fall back
+    to key-presence classification (offline CI, no per-probe cost/latency).
+    """
+    return (os.getenv("GENBLAZE_PROBE_LIVE") or "").strip().lower() not in {
+        "0",
+        "false",
+        "off",
+        "no",
+    }
+
+
+def _polish_enabled() -> bool:
+    flag = (os.getenv("GENBLAZE_POLISH_ENABLED") or "").strip().lower()
+    return flag in {"1", "true", "yes", "on"}
+
+
+def probe_fal(live: bool | None = None) -> PainterProbe:
+    live = _env_live() if live is None else live
     key = (
         (os.getenv("FAL_KEY") or "").strip()
         or (os.getenv("FAL_API_KEY") or "").strip()
@@ -128,73 +171,345 @@ def probe_fal() -> PainterProbe:
     if not key:
         return PainterProbe(
             backend=BACKEND_FAL,
-            available=False,
+            configured=False,
+            reachable=None,
+            operational=None,
+            verified=False,
+            last_verified=None,
             detail="missing FAL_KEY / FAL_API_KEY / SEEDANCE_API_KEY",
             env_vars_required=["FAL_KEY", "FAL_API_KEY", "SEEDANCE_API_KEY"],
         )
+    if not _polish_enabled():
+        return PainterProbe(
+            backend=BACKEND_FAL,
+            configured=False,
+            reachable=None,
+            operational=None,
+            verified=False,
+            last_verified=None,
+            detail=(
+                "GENBLAZE_POLISH_ENABLED not enabled (fail closed); "
+                "key present but policy gate off"
+            ),
+            env_vars_required=["FAL_KEY"],
+        )
+    if not live:
+        return PainterProbe(
+            backend=BACKEND_FAL,
+            configured=True,
+            reachable=None,
+            operational=None,
+            verified=False,
+            last_verified=None,
+            detail="configured (live probe disabled via GENBLAZE_PROBE_LIVE=0)",
+            env_vars_required=["FAL_KEY"],
+        )
+    try:
+        import httpx
+
+        payload = {
+            "prompt": "constitutional painter probe",
+            "width": 768,
+            "height": 768,
+            "num_images": 1,
+        }
+        headers = {
+            "Authorization": f"Key {key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        with httpx.Client(timeout=20.0) as client:
+            resp = client.post(
+                "https://fal.run/fal-ai/flux/schnell",
+                json=payload,
+                headers=headers,
+            )
+    except Exception as exc:  # noqa: BLE001
+        return PainterProbe(
+            backend=BACKEND_FAL,
+            configured=True,
+            reachable=False,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail=f"fal: unreachable ({type(exc).__name__}: {exc})",
+            env_vars_required=["FAL_KEY"],
+        )
+    if resp.status_code == 200:
+        return PainterProbe(
+            backend=BACKEND_FAL,
+            configured=True,
+            reachable=True,
+            operational=True,
+            verified=True,
+            last_verified=_utc_now(),
+            detail="fal: live auth + generation ok (HTTP 200)",
+            env_vars_required=["FAL_KEY"],
+        )
+    if resp.status_code == 401:
+        return PainterProbe(
+            backend=BACKEND_FAL,
+            configured=True,
+            reachable=True,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail=(
+                "fal: invalid/dead key (HTTP 401): "
+                f"{resp.text[:120]}"
+            ),
+            env_vars_required=["FAL_KEY"],
+        )
     return PainterProbe(
         backend=BACKEND_FAL,
-        available=True,
-        detail="key present (live call gated by --painter fal and GENBLAZE_POLISH_ENABLED)",
+        configured=True,
+        reachable=True,
+        operational=False,
+        verified=True,
+        last_verified=_utc_now(),
+        detail=f"fal: upstream error (HTTP {resp.status_code}): {resp.text[:120]}",
         env_vars_required=["FAL_KEY"],
     )
 
 
-def probe_lemonade() -> PainterProbe:
+def probe_lemonade(live: bool | None = None) -> PainterProbe:
+    live = _env_live() if live is None else live
     base = (os.getenv("LEMONADE_BASE_URL") or "http://127.0.0.1:13305/api/v1").rstrip(
         "/"
     )
+    if not live:
+        return PainterProbe(
+            backend=BACKEND_LEMONADE,
+            configured=True,
+            reachable=None,
+            operational=None,
+            verified=False,
+            last_verified=None,
+            detail="configured (live probe disabled via GENBLAZE_PROBE_LIVE=0)",
+            env_vars_required=["LEMONADE_BASE_URL"],
+        )
     try:
         import httpx
 
-        with httpx.Client(timeout=3.0) as client:
-            # Prefer models listing; health varies by Lemonade build.
+        with httpx.Client(timeout=20.0) as client:
+            reachable = None
             for url in (f"{base}/models", f"{base}/health"):
                 try:
                     resp = client.get(url)
                     if resp.status_code < 500:
-                        return PainterProbe(
-                            backend=BACKEND_LEMONADE,
-                            available=resp.status_code < 400,
-                            detail=f"{url} → HTTP {resp.status_code}",
-                            env_vars_required=["LEMONADE_BASE_URL"],
-                        )
+                        reachable = url
+                        break
                 except Exception:  # noqa: BLE001
                     continue
-        return PainterProbe(
-            backend=BACKEND_LEMONADE,
-            available=False,
-            detail=f"unreachable at {base}",
-            env_vars_required=["LEMONADE_BASE_URL"],
-        )
+            if reachable is None:
+                return PainterProbe(
+                    backend=BACKEND_LEMONADE,
+                    configured=True,
+                    reachable=False,
+                    operational=False,
+                    verified=True,
+                    last_verified=_utc_now(),
+                    detail=f"lemonade: unreachable at {base}",
+                    env_vars_required=["LEMONADE_BASE_URL"],
+                )
+            payload = {
+                "model": os.getenv("LEMONADE_MODEL") or "SD-Turbo",
+                "prompt": "constitutional painter probe",
+                "size": "512x512",
+                "steps": 4,
+                "response_format": "b64_json",
+            }
+            headers = {"Content-Type": "application/json"}
+            api_key = (os.getenv("LEMONADE_API_KEY") or "").strip()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            try:
+                gen = client.post(
+                    f"{base}/images/generations",
+                    json=payload,
+                    headers=headers,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return PainterProbe(
+                    backend=BACKEND_LEMONADE,
+                    configured=True,
+                    reachable=True,
+                    operational=False,
+                    verified=True,
+                    last_verified=_utc_now(),
+                    detail=(
+                        "lemonade: generation probe failed "
+                        f"({type(exc).__name__}: {exc})"
+                    ),
+                    env_vars_required=["LEMONADE_BASE_URL"],
+                )
+            if gen.status_code == 200:
+                body = gen.json()
+                data = (body.get("data") or [{}])[0]
+                if data.get("b64_json"):
+                    return PainterProbe(
+                        backend=BACKEND_LEMONADE,
+                        configured=True,
+                        reachable=True,
+                        operational=True,
+                        verified=True,
+                        last_verified=_utc_now(),
+                        detail="lemonade: generation ok (HTTP 200)",
+                        env_vars_required=["LEMONADE_BASE_URL"],
+                    )
+                return PainterProbe(
+                    backend=BACKEND_LEMONADE,
+                    configured=True,
+                    reachable=True,
+                    operational=False,
+                    verified=True,
+                    last_verified=_utc_now(),
+                    detail="lemonade: generation returned no b64_json",
+                    env_vars_required=["LEMONADE_BASE_URL"],
+                )
+            return PainterProbe(
+                backend=BACKEND_LEMONADE,
+                configured=True,
+                reachable=True,
+                operational=False,
+                verified=True,
+                last_verified=_utc_now(),
+                detail=(
+                    "lemonade: generation failed (HTTP "
+                    f"{gen.status_code}): {gen.text[:200]}"
+                ),
+                env_vars_required=["LEMONADE_BASE_URL"],
+            )
     except Exception as exc:  # noqa: BLE001
         return PainterProbe(
             backend=BACKEND_LEMONADE,
-            available=False,
-            detail=f"{type(exc).__name__}: {exc}",
+            configured=True,
+            reachable=False,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail=f"lemonade: {type(exc).__name__}: {exc}",
             env_vars_required=["LEMONADE_BASE_URL"],
         )
 
 
-def probe_nvidia() -> PainterProbe:
+def probe_nvidia(live: bool | None = None) -> PainterProbe:
+    live = _env_live() if live is None else live
     key = (os.getenv("NVIDIA_API_KEY") or os.getenv("NVIDIA_NIM_API_KEY") or "").strip()
     if not key:
         return PainterProbe(
             backend=BACKEND_NVIDIA,
-            available=False,
+            configured=False,
+            reachable=None,
+            operational=None,
+            verified=False,
+            last_verified=None,
             detail="missing NVIDIA_API_KEY",
+            env_vars_required=["NVIDIA_API_KEY"],
+        )
+    if not live:
+        return PainterProbe(
+            backend=BACKEND_NVIDIA,
+            configured=True,
+            reachable=None,
+            operational=None,
+            verified=False,
+            last_verified=None,
+            detail="configured (live probe disabled via GENBLAZE_PROBE_LIVE=0)",
+            env_vars_required=["NVIDIA_API_KEY"],
+        )
+    try:
+        import httpx
+
+        payload = {
+            "prompt": "constitutional painter probe",
+            "width": 1024,
+            "height": 1024,
+            "steps": 1,
+        }
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        with httpx.Client(timeout=20.0) as client:
+            resp = client.post(
+                "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell",
+                json=payload,
+                headers=headers,
+            )
+    except httpx.TimeoutException:
+        return PainterProbe(
+            backend=BACKEND_NVIDIA,
+            configured=True,
+            reachable=False,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail="nvidia: upstream timeout (slow/unreachable)",
+            env_vars_required=["NVIDIA_API_KEY"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        return PainterProbe(
+            backend=BACKEND_NVIDIA,
+            configured=True,
+            reachable=False,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail=f"nvidia: unreachable ({type(exc).__name__}: {exc})",
+            env_vars_required=["NVIDIA_API_KEY"],
+        )
+    if resp.status_code == 200:
+        return PainterProbe(
+            backend=BACKEND_NVIDIA,
+            configured=True,
+            reachable=True,
+            operational=True,
+            verified=True,
+            last_verified=_utc_now(),
+            detail="nvidia: live auth + generation ok (HTTP 200)",
+            env_vars_required=["NVIDIA_API_KEY"],
+        )
+    if resp.status_code in (401, 403):
+        return PainterProbe(
+            backend=BACKEND_NVIDIA,
+            configured=True,
+            reachable=True,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail=f"nvidia: invalid key (HTTP {resp.status_code})",
+            env_vars_required=["NVIDIA_API_KEY"],
+        )
+    if resp.status_code in (400, 422):
+        return PainterProbe(
+            backend=BACKEND_NVIDIA,
+            configured=True,
+            reachable=True,
+            operational=False,
+            verified=True,
+            last_verified=_utc_now(),
+            detail=(
+                "nvidia: schema reject (HTTP "
+                f"{resp.status_code}): {resp.text[:120]}"
+            ),
             env_vars_required=["NVIDIA_API_KEY"],
         )
     return PainterProbe(
         backend=BACKEND_NVIDIA,
-        available=True,
-        detail="key present (img2img support is best-effort / often T2I-only)",
+        configured=True,
+        reachable=True,
+        operational=False,
+        verified=True,
+        last_verified=_utc_now(),
+        detail=f"nvidia: upstream unavailable (HTTP {resp.status_code})",
         env_vars_required=["NVIDIA_API_KEY"],
     )
 
 
-def probe_painters() -> list[PainterProbe]:
-    return [probe_fal(), probe_lemonade(), probe_nvidia()]
+def probe_painters(live: bool | None = None) -> list[PainterProbe]:
+    return [probe_fal(live), probe_lemonade(live), probe_nvidia(live)]
 
 
 def build_assertion(
@@ -460,6 +775,7 @@ def run_beauty_stage(
     profile: dict[str, Any],
     painter_pref: str,
     allow_cel_proxy: bool,
+    probe_map: dict[str, PainterProbe] | None = None,
 ) -> tuple[bytes, str, str, bool, str]:
     """Return (beauty_bytes, lane, backend, anime_claim, detail)."""
     palette = (profile.get("color_palette") or {}).get("roles") or {}
@@ -472,7 +788,11 @@ def run_beauty_stage(
     if ANIME_STEER_SUFFIX not in steered:
         steered = f"{steered}, {ANIME_STEER_SUFFIX}"
 
-    probes = {p.backend: p for p in probe_painters()}
+    probes = (
+        probe_map
+        if probe_map is not None
+        else {p.backend: p for p in probe_painters()}
+    )
     order: list[str]
     if painter_pref == "auto":
         order = [BACKEND_FAL, BACKEND_LEMONADE, BACKEND_CEL_PROXY]
@@ -483,17 +803,18 @@ def run_beauty_stage(
 
     details: list[str] = []
     for backend in order:
+        probe = probes.get(backend)
         if backend == BACKEND_FAL:
-            if not probes[BACKEND_FAL].available:
-                details.append(probes[BACKEND_FAL].detail)
+            if probe is None or not probe.available:
+                details.append(probe.detail if probe else "fal: not probed")
                 continue
             pixels, detail = try_fal_polish(structure_png, steered)
             details.append(detail)
             if pixels:
                 return pixels, LANE_BEAUTY, BACKEND_FAL, True, detail
         elif backend == BACKEND_LEMONADE:
-            if not probes[BACKEND_LEMONADE].available:
-                details.append(probes[BACKEND_LEMONADE].detail)
+            if probe is None or not probe.available:
+                details.append(probe.detail if probe else "lemonade: not probed")
                 continue
             pixels, detail = try_lemonade_t2i(steered)
             details.append(detail)
@@ -606,11 +927,14 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
     structure_bytes = structure_file.read_bytes()
     structure_sha = _sha256_bytes(structure_bytes)
 
+    probes = probe_painters(live=args.painter != BACKEND_NONE)
+
     beauty_bytes, lane, backend, anime_claim, beauty_detail = run_beauty_stage(
         structure_png=structure_bytes,
         profile=profile,
         painter_pref=args.painter,
         allow_cel_proxy=not args.no_cel_proxy,
+        probe_map={p.backend: p for p in probes},
     )
     beauty_path = out_dir / ("beauty.png" if anime_claim else "structure-only.png")
     # Always also write final.png for a stable viewer path
@@ -678,7 +1002,7 @@ def run_pipeline(args: argparse.Namespace) -> RenderManifest:
         )
     )
 
-    probes = [asdict(p) for p in probe_painters()]
+    probes = [asdict(p) for p in probes]
     assertion = build_assertion(
         profile_id=str(profile["profileId"]),
         profile_version=str(profile.get("schemaVersion") or SCHEMA_VERSION),
