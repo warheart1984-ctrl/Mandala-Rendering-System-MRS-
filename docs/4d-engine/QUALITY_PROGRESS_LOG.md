@@ -12,6 +12,22 @@ Every cycle answers:
 
 ---
 
+## 2026-07-31 — Anime media look lane (Genblaze partial)
+
+| Field | Value |
+|-------|-------|
+| Lane | `GENBLAZE_STYLE=anime` / API `style=anime` |
+| Module | `mrs/apps/genblaze-media/app/style_steer.py` |
+| Status | **partial** (FLUX/Lemonade/polish prompt steer) |
+| Photoreal Cycles | Optional (`external-pbr`); not required for media demos |
+
+1. **Improved / happened:** First-class anime look flag on generate/polish/engine3d-still; health exposes `media_style`; README honesty row.
+2. **Artificial / gaps:** Steering is prompt-only — not a dedicated anime model, not cel-shader in Engine3D, not Digital Printer SoT. RT4D structure pixels ignore anime steer.
+3. **Measured:** Unit/API dry-run tests in `tests/test_style_steer.py` (style accepted + steer suffix).
+4. **Next bottleneck:** Live FLUX/NIM sample plate with `style=anime` when gateway 504 clears; optional UI style control polish.
+
+---
+
 ## 2026-07-30 — Prod face fixture + scene-type Cycles plates
 
 | Field | Value |
