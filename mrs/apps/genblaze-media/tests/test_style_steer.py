@@ -60,6 +60,11 @@ def test_style_health_payload():
     assert payload["default"] == STYLE_ANIME
     assert payload["anime_status"] == "partial"
     assert "style" in payload["api_field"]
+    assert payload["entry_point"] == "constitutional-anime-rendering"
+    awp = payload["anime_world_profile"]
+    assert awp["enforcement_status"] == "declared"
+    assert awp["validation_status"] == "skeleton"
+    assert awp.get("example_valid") is True
 
 
 def _offline_settings(**overrides) -> Settings:

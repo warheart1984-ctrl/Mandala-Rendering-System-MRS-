@@ -12,6 +12,24 @@ Every cycle answers:
 
 ---
 
+## 2026-07-31 — Constitutional Anime Rendering (entry-point lock)
+
+| Field | Value |
+|-------|-------|
+| Trail | `docs/governance/cecp/trails/constitutional-anime-rendering-2026-07/` |
+| Schema | `schemas/anime/AnimeWorldProfile.v1.schema.json` (**skeleton**) |
+| Validator | `mrs/apps/genblaze-media/app/anime_world_profile.py` (**skeleton**) |
+| Anime look lane | **partial** (`style_steer`) |
+| Profile enforcement | **declared** (gate points documented; no CKL deny) |
+| ESFR | **PASS_WITH_GAPS** / **PROMOTE_WITH_GAPS** |
+
+1. **Improved / happened:** User-affirmed entry point captured: governed stylization (cel, mist, silhouettes, line weight, 3D env + 2D characters, continuity, 4D motifs) — not a photorealism apology. `AnimeWorldProfile` schema + example + field validator; Genblaze `/health` exposes `entry_point` + profile fragment; ink-cel trail cross-linked as Engine3D slice.
+2. **Artificial / gaps:** Shot-vs-profile enforcement not runtime; ink-cel pixels still design-only; NIM/FLUX anime remain creative assist (not Digital Printer SoT); Lemonade SD held on this host when `pixelsProduced` is false.
+3. **Measured:** Unit tests for profile validate + style_steer health fragment (see trail 03/05).
+4. **Next bottleneck:** Map profile `shadow_steps`/`outline_rules` into Engine3D ink-cel; attach `anime_world_profile_id` on manifests; opt-in replay freeze.
+
+---
+
 ## 2026-07-31 — Anime media look lane (Genblaze partial)
 
 | Field | Value |

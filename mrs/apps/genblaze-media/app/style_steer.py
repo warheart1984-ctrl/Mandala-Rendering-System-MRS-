@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.anime_world_profile import anime_profile_health_fragment
+
 STYLE_DEFAULT = "default"
 STYLE_ANIME = "anime"
 ALLOWED_STYLES = frozenset({STYLE_DEFAULT, STYLE_ANIME})
@@ -103,11 +105,17 @@ def style_health_payload(settings_style: str | None) -> dict[str, Any]:
         resolved = normalize_style(settings_style)
     except ValueError:
         resolved = STYLE_DEFAULT
-    return {
+    payload: dict[str, Any] = {
         "default": resolved,
         "allowed": sorted(ALLOWED_STYLES),
         "anime_status": ANIME_STATUS,
         "anime_note": ANIME_NOTE,
         "env": "GENBLAZE_STYLE",
         "api_field": "style",
+        "entry_point": "constitutional-anime-rendering",
     }
+    # AnimeWorldProfile governance is skeleton; enforcement remains declared.
+    payload["anime_world_profile"] = anime_profile_health_fragment(
+        settings_style=resolved
+    )
+    return payload
