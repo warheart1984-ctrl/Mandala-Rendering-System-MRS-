@@ -77,6 +77,7 @@ Demo out: `tmp/constitutional-anime-render-v1/` (gitignored plates; README prese
 
 | Trail / module | Role | Status |
 |----------------|------|--------|
+| `dimensional-compression-2026-07` | Arena → Invariants → Execution formalization for this product | **declared** methodology · [doctrine](../../../DIMENSIONAL_COMPRESSION.md) · [applied worksheet](../dimensional-compression-2026-07/APPLIED_EXERCISE.md) |
 | `ink-cel-render-lane-2026-07` | Engine3D soft-raster cel + ink AOV | **partial** (design) |
 | Genblaze `style_steer.py` | Diffusion/polish anime prompt steer | **partial** |
 | Photoreal / Cycles | Optional side path | optional |

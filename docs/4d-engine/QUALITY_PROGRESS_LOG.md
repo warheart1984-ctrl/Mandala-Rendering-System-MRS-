@@ -12,6 +12,22 @@ Every cycle answers:
 
 ---
 
+## 2026-07-31 — Dimensional Compression formalized (methodology)
+
+| Field | Value |
+|-------|-------|
+| Doctrine | `docs/governance/DIMENSIONAL_COMPRESSION.md` (**declared**) |
+| Trail | `docs/governance/cecp/trails/dimensional-compression-2026-07/` |
+| Applied | Constitutional Anime Arena/Invariants/Execution + CIEMS/continuity secondary |
+| Acronym map | JCK…CCC → repo paths (no invented expansions) |
+
+1. **Improved / happened:** Made explicit the three-layer compression law CIEMS/MRS already use intuitively (Arena → Invariants → Execution); bound it to anime profile/lane/continuity artifacts without amending the charter.
+2. **Artificial / gaps:** Principle not runtime-gated; JCK/JCR/CEL expansions remain undeclared tokens where missing; anime CKL deny still **declared**.
+3. **Measured:** Docs + cross-links only this cycle (no new pixel probes).
+4. **Next bottleneck:** Fail-closed `anime_world_profile_id` + deny `anime_claim: true` without validated profile / beauty pixels.
+
+---
+
 ## 2026-07-31 — Constitutional Anime Rendering (entry-point lock)
 
 | Field | Value |
