@@ -20,15 +20,15 @@ function offsetOrigin(position, direction) {
 /** Constitutional invariant: compute hash of scene geometry for traceability. */
 function computeSceneGeometryHash(scene) {
   if (!scene.primitives || scene.primitives.length === 0) return "empty";
-  const primitives = scene.primitives.filter(p => p.vertices && p.faces);
+  const primitives = scene.primitives.filter(p => p.vertices && p.indices);
   if (primitives.length === 0) return "empty";
   const vertexCount = primitives.reduce((sum, m) => sum + (m.vertices?.length ?? 0), 0);
-  const faceCount = primitives.reduce((sum, m) => sum + (m.faces?.length ?? 0), 0);
+  const faceCount = primitives.reduce((sum, m) => sum + (m.indices?.length ?? 0), 0);
   const vertexHash = createHash("sha256")
     .update(primitives.flatMap(m => m.vertices?.flatMap(v => [v.x, v.y, v.z, v.w]).join(",") ?? "").join("|"))
     .digest("hex").slice(0, 16);
   const faceHash = createHash("sha256")
-    .update(primitives.flatMap(m => m.faces?.flatMap(f => f.join(",")).join(";") ?? "").join("|"))
+    .update(primitives.flatMap(m => m.indices?.flatMap(f => f.join(",")).join(";") ?? "").join("|"))
     .digest("hex").slice(0, 16);
   return `${vertexHash}:${faceCount}`;
 }
@@ -151,6 +151,12 @@ export class PathTracer4D {
     const hit = scene.intersect(ray);
     if (!hit) return scene.getEnvironment?.(ray) ?? vec4(0, 0, 0, 0);
 
+    // Constitutional debug: log first hit material for first ray of first sample
+    if (depth === 0 && constitutionalContext.__firstHitLogged !== true) {
+      constitutionalContext.__firstHitLogged = true;
+      console.debug(`[PathTracer4D] First hit: materialId=${hit.materialId}, t=${hit.t}, normal=(${hit.normal?.x},${hit.normal?.y},${hit.normal?.z},${hit.normal?.w})`);
+    }
+
     const mat = scene.getShadedMaterial?.(hit.materialId, hit) ?? scene.getMaterial(hit.materialId);
     if (!mat) return vec4(0, 0, 0, 0);
 
@@ -162,13 +168,13 @@ export class PathTracer4D {
     }
 
     if (mat.isVolume && mat.phase) {
-      return this._handleVolume(ray, hit, mat, scene, depth);
+      return this._handleVolume(ray, hit, mat, scene, depth, constitutionalContext);
     }
 
-    return this._handleSurface(ray, hit, mat, scene, depth);
+    return this._handleSurface(ray, hit, mat, scene, depth, constitutionalContext);
   }
 
-  _handleSurface(ray, hit, mat, scene, depth) {
+  _handleSurface(ray, hit, mat, scene, depth, constitutionalContext) {
     const wi = normalize(neg(ray.direction));
     let Lo = mat.emission ?? vec4(0, 0, 0, 0);
 
@@ -220,7 +226,7 @@ export class PathTracer4D {
       tMax: 1e9,
     };
 
-    const L = this.trace(scatterRay, scene, depth + 1);
+    const L = this.trace(scatterRay, scene, depth + 1, constitutionalContext);
     const lightPdf = this._sampleLightPDF(scene, hit, bsdfSample.wo);
     const misWeight = this._misWeight(bsdfSample.pdf, lightPdf);
     const cosTheta = Math.abs(dot(bsdfSample.wo, hit.normal));
@@ -232,7 +238,7 @@ export class PathTracer4D {
     return add(Lo, contribution);
   }
 
-  _handleVolume(ray, hit, mat, scene, depth) {
+  _handleVolume(ray, hit, mat, scene, depth, constitutionalContext) {
     const wi = normalize(neg(ray.direction));
     const u1 = this.rng(), u2 = this.rng(), u3 = this.rng();
 
@@ -245,7 +251,7 @@ export class PathTracer4D {
       tMax: 1e9,
     };
 
-    const L = this.trace(scatterRay, scene, depth + 1);
+    const L = this.trace(scatterRay, scene, depth + 1, constitutionalContext);
 
     const phaseVal = mat.phase.evaluate(wi, phaseSample.wo);
     const contribution = scale(L, phaseVal / (phaseSample.pdf + 1e-9));

@@ -291,6 +291,15 @@ export async function renderScene(
     lensRadius: 0,
   });
 
+  // Constitutional tracing context
+  const constitutionalContext = {
+    geometryHash: scene.geometryHash,
+    sceneHash: sceneSpecHash,
+    surfaceId: scene.surfaceId,
+    rngSeed: params.seed,
+    prevSceneHash: "", // would be set from previous render if chaining
+  };
+
   const rng = mulberry32(seed);
   const tracer = new PathTracer4D({ maxDepth, samplesPerPixel: samples, rng });
 
@@ -306,7 +315,7 @@ export async function renderScene(
         // Fix the hyperplane sample at the central 4D slice (render-still audited
         // fix) — randomizing u3/u4 sprays finite hyperspheres into speckle.
         const ray = camera.generateRay(x, y, u1, u2, 0.5, 0.5);
-        const L = tracer.trace(ray, scene);
+        const L = tracer.trace(ray, scene, 0, constitutionalContext);
         r += L.x;
         g += L.y;
         b += L.z;
