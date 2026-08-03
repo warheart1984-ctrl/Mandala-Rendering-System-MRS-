@@ -58,6 +58,8 @@ export class TriangleMesh4D {
     this.instanceMatrix = options.instanceMatrix ?? null;
     this.inverseInstanceMatrix = options.inverseInstanceMatrix ?? null;
     this.localBvhKey = options.localBvhKey ?? null;
+    this.surfaceId = options.surfaceId ?? "unknown";
+    this.geometryHash = options.geometryHash ?? "";
 
     // Build the SkinnedMeshIntersector (handles per-mesh BVH + intersection).
     this._intersector = new SkinnedMeshIntersector(this);
