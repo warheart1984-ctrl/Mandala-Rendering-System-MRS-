@@ -228,6 +228,11 @@ function buildScene(spec: SceneSpec, timeSeconds: number) {
   scene.addLight(new Hypersphere(vec4(4.2, 7.2, -3.8, 0), 0.7), "keylight");
   scene.addLight(new Hypersphere(vec4(-5.0, 5.8, 4.2, 0), 0.55), "filllight");
   scene.build();
+
+  // Attach surface identity and geometry hash for constitutional tracing
+  scene.surfaceId = spec.surface;
+  scene.geometryHash = mesh.geometryHash;
+
   return { scene, mesh, verts };
 }
 
