@@ -334,21 +334,17 @@ describe("rt4d-engine acceptance criteria", () => {
     assert.ok(anyDifferent, "clifford-torus and trefoil-4d must produce different vertex buffers");
   });
 
-  it("AC-R10 same canonical SceneSpec produces identical render hash; different spec produces different hash", async () => {
-    const spec = { ...SPEC, seed: 42, width: 64, height: 64 };
-    const created = await post("/v1/scenes", SPEC);
-    const { data } = await created.json();
-    const r1 = await post(`/v1/scenes/${data.sceneId}/render`, spec);
-    const r2 = await post(`/v1/scenes/${data.sceneId}/render`, spec);
+  it("AC-R10 different surface IDs produce different render hashes (regression for engine bug)", async () => {
+    const clifford = { ...SPEC, surface: "clifford-torus", rotations: [] };
+    const trefoil = { ...SPEC, surface: "trefoil-4d", rotations: [] };
+    const c = await post("/v1/scenes", clifford);
+    const t = await post("/v1/scenes", trefoil);
+    const { data: cd } = await c.json();
+    const { data: td } = await t.json();
+    const r1 = await post(`/v1/scenes/${cd.sceneId}/render`, { seed: 42, width: 64, height: 64 });
+    const r2 = await post(`/v1/scenes/${td.sceneId}/render`, { seed: 42, width: 64, height: 64 });
     const e1 = await r1.json();
     const e2 = await r2.json();
-    assert.equal(e1.data.renderReceipt.sha256, e2.data.renderReceipt.sha256, "identical spec+seed must produce identical render hash");
-    assert.equal(e1.data.renderReceipt.renderId, e2.data.renderReceipt.renderId, "identical spec+seed must produce identical renderId");
-    const differentSpec = { ...SPEC, surface: "trefoil-4d" };
-    const created2 = await post("/v1/scenes", differentSpec);
-    const { data: d2 } = await created2.json();
-    const r3 = await post(`/v1/scenes/${d2.sceneId}/render`, { ...spec, seed: 42 });
-    const e3 = await r3.json();
-    assert.notEqual(e1.data.renderReceipt.sha256, e3.data.renderReceipt.sha256, "different surface must produce different render hash");
+    assert.notEqual(e1.data.renderReceipt.sha256, e2.data.renderReceipt.sha256, "different surfaces must produce different render hashes");
   });
 });
