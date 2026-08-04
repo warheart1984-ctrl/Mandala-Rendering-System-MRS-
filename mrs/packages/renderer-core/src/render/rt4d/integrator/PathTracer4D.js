@@ -4,6 +4,11 @@ import { sampleRt4dLight } from "../lighting/Rt4dLightAdapter.js";
 import { DEFAULT_METRIC_ID } from "../identity/RenderIdentity.js";
 import { createHash } from "node:crypto";
 
+/** Per-ray debug telemetry is opt-in (MRS_TRACE=1) so the engine test
+ *  suite stays runnable; the identical-PNG regression is caught by the
+ *  fail-fast identity boundary + renderIdentityHash, not this logging. */
+const TRACE_DEBUG = process.env.MRS_TRACE === "1" || process.env.MRS_TRACE === "true";
+
 /** Surface area of an S³ of radius R (hypersphere boundary in R⁴). */
 function hypersphereArea(radius) {
   return S3_AREA * radius * radius * radius;
@@ -82,6 +87,8 @@ export class PathTracer4D {
      * }}
      */
     this.observationProjection = options.observationProjection ?? null;
+    /** Constitutional violations already surfaced per scene (dedupe by geometry hash). */
+    this._warnedMissingGeometryHash = new Set();
   }
 
   /**
@@ -150,9 +157,16 @@ export class PathTracer4D {
     const geometryEvidenceId = constitutionalContext.geometryEvidenceId ?? scene.geometryEvidenceId ?? null;
     const metricId = constitutionalContext.metricId ?? scene.metric?.id ?? DEFAULT_METRIC_ID;
 
-    // Constitutional invariant: trace entry must carry geometry evidence
+    // Constitutional invariant: trace entry must carry geometry evidence.
+    // Emit at most once per scene — the ChatGPT render_4d_prompt path and the
+    // engine suite otherwise flood stdout with one warning per ray, drowning
+    // real output. The fail-fast identity boundary below still asserts when a
+    // geometryEvidenceId is supplied.
     if (!constitutionalContext.geometryHash) {
-      console.warn(`[PathTracer4D] CONSTITUTIONAL VIOLATION: trace() called without geometryHash. surfaceId=${surfaceId}, sceneHash=${sceneHash}`);
+      if (!this._warnedMissingGeometryHash.has(sceneGeometryHash)) {
+        this._warnedMissingGeometryHash.add(sceneGeometryHash);
+        console.warn(`[PathTracer4D] CONSTITUTIONAL VIOLATION: trace() called without geometryHash. surfaceId=${surfaceId}, sceneHash=${sceneHash}`);
+      }
     } else {
       // Constitutional invariant: geometryHash must be non-empty
       if (!constitutionalContext.geometryHash || constitutionalContext.geometryHash === "") {
@@ -179,7 +193,9 @@ export class PathTracer4D {
       scene._renderIdentityVerified = true;
     }
 
-    console.debug(`[PathTracer4D] trace entry: surfaceId=${surfaceId}, sceneGeometryHash=${sceneGeometryHash}, geometryEvidenceId=${geometryEvidenceId ?? "none"}, sceneHash=${sceneHash}, rngSeed=${rngSeed}, depth=${depth}`);
+    if (TRACE_DEBUG) {
+      console.debug(`[PathTracer4D] trace entry: surfaceId=${surfaceId}, sceneGeometryHash=${sceneGeometryHash}, geometryEvidenceId=${geometryEvidenceId ?? "none"}, sceneHash=${sceneHash}, rngSeed=${rngSeed}, depth=${depth}`);
+    }
 
     if (depth >= this.maxDepth) return vec4(0, 0, 0, 0);
 
@@ -190,6 +206,7 @@ export class PathTracer4D {
     // evidence to the render identity so lost-geometry regressions are visible.
     if (depth === 0 && constitutionalContext.__firstHitLogged !== true) {
       constitutionalContext.__firstHitLogged = true;
+      if (TRACE_DEBUG) {
       const bvh = scene.geometryIntersector?.bvh ?? null;
       const bvhPrimCount = countBvhPrimitives(bvh);
       console.debug(
@@ -198,6 +215,7 @@ export class PathTracer4D {
         `geometryEvidenceId=${hit.geometryEvidenceId ?? "none"}, ` +
         `intersectorBvhPrimitives=${bvhPrimCount}, normal=(${hit.normal?.x},${hit.normal?.y},${hit.normal?.z},${hit.normal?.w})`,
       );
+    }
     }
 
     const mat = scene.getShadedMaterial?.(hit.materialId, hit) ?? scene.getMaterial(hit.materialId);
