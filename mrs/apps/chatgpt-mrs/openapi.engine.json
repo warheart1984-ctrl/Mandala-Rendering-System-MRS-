@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "MRS RT4D Engine",
-    "description": "Deterministic procedural 4D rendering engine (REST). Create a governed scene from a SceneSpecification, then render it to a PNG with a full hash-chain (sceneSpec -> projection -> pixel -> PNG) and an evidence envelope. This is NOT diffusion: frames are produced by the CPU RT4D path tracer from the scene spec. Every response is wrapped in an envelope: { ok, statusTag, data, error, requestId, at }.",
+    "description": "Deterministic procedural 4D rendering engine (REST). Create a governed scene, then render it to a PNG with a full hash-chain and evidence envelope. This is NOT diffusion: frames come from the CPU RT4D path tracer. Every response is an envelope: { ok, statusTag, data, error, requestId, at }.",
     "version": "1.0.0"
   },
   "servers": [
@@ -46,7 +46,7 @@
       "post": {
         "operationId": "createScene",
         "summary": "STEP 1 of 2 — create a governed 4D scene, then render it",
-        "description": "ALWAYS call this operation FIRST. Accepts a SceneSpecification object directly (or { sceneSpec, promptHash }). Returns data.sceneId, which you MUST pass as the {sceneId} path parameter to renderScene. Example body: { \"surface\": \"trefoil-4d\", \"resolution\": 12, \"rotations\": [], \"projection\": { \"type\": \"perspective\", \"distance4d\": 4, \"distance3d\": 4 }, \"camera\": { \"fovX\": 52, \"fovY\": 52, \"fovZ\": 8, \"fovW\": 8, \"lensRadius\": 0 } }",
+        "description": "STEP 1 of 2. Always call this first. Returns data.sceneId — pass it as {sceneId} to renderScene. See the request body for an example scene spec.",
         "tags": ["render"],
         "requestBody": {
           "required": true,
@@ -113,7 +113,7 @@
       "post": {
         "operationId": "renderScene",
         "summary": "STEP 2 of 2 — render a created scene to a deterministic RT4D PNG with evidence",
-        "description": "Requires a valid {sceneId} returned by createScene (sceneId format: rt4d-scene-<hex>). Do NOT use a surface name like 'tesseract' as the sceneId. The body MUST include a numeric seed. For fast responses on the free tier use small quality: width 64, height 64, samplesPerPixel 1, maxDepth 1. Returns a real PNG (pngBase64) plus the hash chain (projectionHash, pixelHash, pngHash) and a full evidence envelope. Same scene + same seed always produces the same PNG.",
+        "description": "STEP 2 of 2. Requires {sceneId} from createScene (rt4d-scene-<hex>), never a surface name. Body must include a numeric seed. Use small quality: width 64, height 64, samplesPerPixel 1, maxDepth 1. Returns a real PNG (pngBase64), hash chain and evidence. Same scene + seed = same PNG.",
         "tags": ["render"],
         "parameters": [
           {
