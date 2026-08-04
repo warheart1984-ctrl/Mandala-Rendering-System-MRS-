@@ -501,6 +501,7 @@ export function createEngineServer(options: { durableStore?: DurableSceneStore }
           sha256: result.sha256,
           pixelHash: result.pixelHash,
           renderId: result.renderId,
+          renderIdentityHash: result.renderIdentityHash,
           projectionHash,
           runtimeFingerprint: result.runtimeFingerprint,
           renderParameters: orderedParams,

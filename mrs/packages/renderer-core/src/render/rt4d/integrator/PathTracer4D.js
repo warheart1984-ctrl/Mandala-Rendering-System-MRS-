@@ -1,11 +1,26 @@
 import { vec4, scale, add, mul, length, dot, normalize, sub, neg } from "../math/vec4.js";
 import { uniformSampleS3, S3_AREA, powerHeuristic } from "../math/s3.js";
 import { sampleRt4dLight } from "../lighting/Rt4dLightAdapter.js";
+import { DEFAULT_METRIC_ID } from "../identity/RenderIdentity.js";
 import { createHash } from "node:crypto";
 
 /** Surface area of an S³ of radius R (hypersphere boundary in R⁴). */
 function hypersphereArea(radius) {
   return S3_AREA * radius * radius * radius;
+}
+
+/** Read a vertex's 4 components from an object or a nested array. */
+function vertexComponents(v) {
+  if (Array.isArray(v)) return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, v[3] ?? 0];
+  return [v.x ?? 0, v.y ?? 0, v.z ?? 0, v.w ?? 0];
+}
+
+/** Serialize indices whether flat ([i0,i1,i2,...]) or nested ([[a,b,c],...]). */
+function indexData(indices) {
+  if (!indices) return "";
+  return Array.isArray(indices[0])
+    ? indices.map((f) => f.join(",")).join(";")
+    : indices.join(",");
 }
 
 function offsetOrigin(position, direction) {
@@ -24,13 +39,12 @@ function computeSceneGeometryHash(scene) {
   if (primitives.length === 0) return "empty";
   const vertexCount = primitives.reduce((sum, m) => sum + (m.vertices?.length ?? 0), 0);
   const faceCount = primitives.reduce((sum, m) => sum + (m.indices?.length ?? 0), 0);
-  const vertexHash = createHash("sha256")
-    .update(primitives.flatMap(m => m.vertices?.flatMap(v => [v.x, v.y, v.z, v.w]).join(",") ?? "").join("|"))
-    .digest("hex").slice(0, 16);
-  const faceHash = createHash("sha256")
-    .update(primitives.flatMap(m => m.indices?.flatMap(f => f.join(",")).join(";") ?? "").join("|"))
-    .digest("hex").slice(0, 16);
-  return `${vertexHash}:${faceCount}`;
+  const vertexData = primitives
+    .map(m => (m.vertices ?? []).map(v => vertexComponents(v).join(",")).join(";"))
+    .join("|");
+  const faceData = primitives.map(m => indexData(m.indices)).join("|");
+  const digest = createHash("sha256").update(`${vertexData};;${faceData}`).digest("hex");
+  return `${digest.slice(0, 16)}:${faceCount}`;
 }
 
 /** Constitutional invariant: extract surface identity from scene if available. */
@@ -39,6 +53,13 @@ function extractSurfaceIdentity(scene) {
   if (scene.surfaceIdentity) return scene.surfaceIdentity.surfaceId ?? scene.surfaceIdentity;
   if (scene.surfaceIdField) return scene.surfaceIdField;
   return "unknown";
+}
+
+/** Count triangles in a DynamicBvh tree (leaf arrays + recursive split). */
+function countBvhPrimitives(node) {
+  if (!node) return 0;
+  if (node.triangles) return node.triangles.length;
+  return countBvhPrimitives(node.left) + countBvhPrimitives(node.right);
 }
 
 export class PathTracer4D {
@@ -126,6 +147,8 @@ export class PathTracer4D {
     const sceneGeometryHash = computeSceneGeometryHash(scene);
     const sceneHash = constitutionalContext.sceneHash ?? "none";
     const rngSeed = constitutionalContext.rngSeed ?? "unknown";
+    const geometryEvidenceId = constitutionalContext.geometryEvidenceId ?? scene.geometryEvidenceId ?? null;
+    const metricId = constitutionalContext.metricId ?? scene.metric?.id ?? DEFAULT_METRIC_ID;
 
     // Constitutional invariant: trace entry must carry geometry evidence
     if (!constitutionalContext.geometryHash) {
@@ -144,17 +167,37 @@ export class PathTracer4D {
       }
     }
 
-    console.debug(`[PathTracer4D] trace entry: surfaceId=${surfaceId}, sceneGeometryHash=${sceneGeometryHash}, sceneHash=${sceneHash}, rngSeed=${rngSeed}, depth=${depth}`);
+    // Fail-fast identity boundary (AC-R10 / RendererSurfaceDispatch): when the
+    // render intent supplies a geometryEvidenceId, the scene's bound geometry
+    // evidence must match it exactly. Verified once per scene; asserts throw.
+    if (geometryEvidenceId && !scene._renderIdentityVerified) {
+      scene.verifyRenderIdentity({
+        surfaceId,
+        geometryEvidenceId,
+        metricId,
+      });
+      scene._renderIdentityVerified = true;
+    }
+
+    console.debug(`[PathTracer4D] trace entry: surfaceId=${surfaceId}, sceneGeometryHash=${sceneGeometryHash}, geometryEvidenceId=${geometryEvidenceId ?? "none"}, sceneHash=${sceneHash}, rngSeed=${rngSeed}, depth=${depth}`);
 
     if (depth >= this.maxDepth) return vec4(0, 0, 0, 0);
 
     const hit = scene.intersect(ray);
     if (!hit) return scene.getEnvironment?.(ray) ?? vec4(0, 0, 0, 0);
 
-    // Constitutional debug: log first hit material for first ray of first sample
+    // Constitutional debug: first-hit signature ties the intersector's geometry
+    // evidence to the render identity so lost-geometry regressions are visible.
     if (depth === 0 && constitutionalContext.__firstHitLogged !== true) {
       constitutionalContext.__firstHitLogged = true;
-      console.debug(`[PathTracer4D] First hit: materialId=${hit.materialId}, t=${hit.t}, normal=(${hit.normal?.x},${hit.normal?.y},${hit.normal?.z},${hit.normal?.w})`);
+      const bvh = scene.geometryIntersector?.bvh ?? null;
+      const bvhPrimCount = countBvhPrimitives(bvh);
+      console.debug(
+        `[PathTracer4D] First hit signature: materialId=${hit.materialId}, t=${hit.t}, ` +
+        `surfaceId=${hit.surfaceId}, geometryHash=${hit.geometryHash}, ` +
+        `geometryEvidenceId=${hit.geometryEvidenceId ?? "none"}, ` +
+        `intersectorBvhPrimitives=${bvhPrimCount}, normal=(${hit.normal?.x},${hit.normal?.y},${hit.normal?.z},${hit.normal?.w})`,
+      );
     }
 
     const mat = scene.getShadedMaterial?.(hit.materialId, hit) ?? scene.getMaterial(hit.materialId);
