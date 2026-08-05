@@ -46,6 +46,13 @@ contextBridge.exposeInMainWorld('api', {
     execute: (input) => ipcRenderer.invoke('sme:execute', { input }),
     health: () => ipcRenderer.invoke('sme:health'),
     
+    // Module Direct Invocation (native-backed)
+    txtGenerate: (params) => ipcRenderer.invoke('sme:txt-generate', params),
+    visEncode: (params) => ipcRenderer.invoke('sme:vis-encode', params),
+    audTranscribe: (params) => ipcRenderer.invoke('sme:aud-transcribe', params),
+    vidProcess: (params) => ipcRenderer.invoke('sme:vid-process', params),
+    genImage: (params) => ipcRenderer.invoke('sme:gen-image', params),
+    
     // Log (Evidence, Replay, Audit)
     evidence: (evidenceId) => ipcRenderer.invoke('sme:evidence', { evidenceId }),
     decision: (decisionId) => ipcRenderer.invoke('sme:decision', { decisionId }),
@@ -54,18 +61,10 @@ contextBridge.exposeInMainWorld('api', {
     audit: (query) => ipcRenderer.invoke('sme:audit', { query }),
     auditReport: (chainId) => ipcRenderer.invoke('sme:audit-report', { chainId }),
     
-    // Capability Planner
-    capabilityPlan: (userRequest) => ipcRenderer.invoke('sme:capability-plan', { userRequest }),
+    // Hardware Profile Matching
     matchPlan: (plan) => ipcRenderer.invoke('sme:match-plan', { plan }),
     profileRecommendations: (plan) => ipcRenderer.invoke('sme:profile-recommendations', { plan }),
     
-    // Hardware Profile
-    hardwareProfile: () => ipcRenderer.invoke('sme:hardware-profile'),
-    hardwareProfiles: () => ipcRenderer.invoke('sme:hardware-profiles'),
-    setHardwareProfile: (profileId) => ipcRenderer.invoke('sme:set-hardware-profile', { profileId }),
-    matchPlan: (plan) => ipcRenderer.invoke('sme:match-plan', { plan }),
-    profileRecommendations: (plan) => ipcRenderer.invoke('sme:profile-recommendations', { plan }),
-
     // Lattice (LRC constitutional routing over the 5 SME substrates)
     latticeRoute: (request) => ipcRenderer.invoke('sme:lattice-route', { request }),
     latticeReplay: (requestId) => ipcRenderer.invoke('sme:lattice-replay', { requestId })

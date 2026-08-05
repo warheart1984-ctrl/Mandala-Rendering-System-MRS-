@@ -196,6 +196,113 @@
         <button class="secondary" onclick="loadEvidenceList()">🔍 Browse Evidence</button>
         <div class="log-panel" id="smeAuditLog" style="height:150px;"></div>
       </div>
+      <div class="panel">
+        <h4>SME Text Generation</h4>
+        <label>Prompt</label>
+        <textarea id="smeTxtPrompt" rows="3" placeholder="Enter text generation prompt..."></textarea>
+        <div class="row">
+          <div>
+            <label>Max Tokens</label>
+            <input type="number" id="smeTxtMaxTokens" value="512" min="1" max="4096">
+          </div>
+          <div>
+            <label>Temperature</label>
+            <input type="number" id="smeTxtTemp" value="0.7" min="0" max="2" step="0.1">
+          </div>
+        </div>
+        <button onclick="runSMETxtGenerate()">🚀 Generate Text</button>
+        <div class="log-panel" id="smeTxtLog" style="height:150px;"></div>
+      </div>
+      <div class="panel">
+        <h4>SME Vision Encode</h4>
+        <label>Image (Base64)</label>
+        <textarea id="smeVisImage" rows="3" placeholder="Paste base64 image data..."></textarea>
+        <div class="row">
+          <div>
+            <label>MIME Type</label>
+            <select id="smeVisMime">
+              <option value="image/png">image/png</option>
+              <option value="image/jpeg">image/jpeg</option>
+              <option value="image/webp">image/webp</option>
+            </select>
+          </div>
+          <div>
+            <label>Extract Features</label>
+            <select id="smeVisFeatures">
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="runSMEVisEncode()">🔍 Encode Image</button>
+        <div class="log-panel" id="smeVisLog" style="height:150px;"></div>
+      </div>
+      <div class="panel">
+        <h4>SME Audio Transcribe</h4>
+        <label>Audio (Base64)</label>
+        <textarea id="smeAudAudio" rows="2" placeholder="Paste base64 audio data..."></textarea>
+        <div class="row">
+          <div>
+            <label>MIME Type</label>
+            <select id="smeAudMime">
+              <option value="audio/wav">audio/wav</option>
+              <option value="audio/mp3">audio/mp3</option>
+              <option value="audio/ogg">audio/ogg</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="runSMEAudTranscribe()">🎤 Transcribe Audio</button>
+        <div class="log-panel" id="smeAudLog" style="height:150px;"></div>
+      </div>
+      <div class="panel">
+        <h4>SME Video Process</h4>
+        <label>Preset</label>
+        <select id="smeVidPreset">
+          <option value="uniform">Uniform Sampling</option>
+          <option value="keyframe">Keyframe Extraction</option>
+          <option value="segment">Segmentation</option>
+        </select>
+        <div class="row">
+          <div>
+            <label>Input Path</label>
+            <input type="text" id="smeVidInput" placeholder="/path/to/input.mp4">
+          </div>
+          <div>
+            <label>Output Path</label>
+            <input type="text" id="smeVidOutput" placeholder="/path/to/output.mp4">
+          </div>
+        </div>
+        <button onclick="runSMEVidProcess()">🎬 Process Video</button>
+        <div class="log-panel" id="smeVidLog" style="height:150px;"></div>
+      </div>
+      <div class="panel">
+        <h4>SME Image Generation</h4>
+        <label>Prompt</label>
+        <textarea id="smeGenPrompt" rows="2" placeholder="Describe the image to generate..."></textarea>
+        <div class="row">
+          <div>
+            <label>Width</label>
+            <input type="number" id="smeGenWidth" value="512" min="64" max="1024" step="64">
+          </div>
+          <div>
+            <label>Height</label>
+            <input type="number" id="smeGenHeight" value="512" min="64" max="1024" step="64">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Steps</label>
+            <input type="number" id="smeGenSteps" value="20" min="1" max="100">
+          </div>
+          <div>
+            <label>Guidance</label>
+            <input type="number" id="smeGenGuidance" value="7.5" min="1" max="20" step="0.5">
+          </div>
+        </div>
+        <button onclick="runSMEGenImage()">🎨 Generate Image</button>
+        <div class="progress-bar" id="smeGenProgress" style="display:none;"><div class="progress-fill" id="smeGenProgressFill"></div></div>
+        <div class="log-panel" id="smeGenLog" style="height:150px;"></div>
+      </div>
     </div>
   </div>
 
@@ -922,6 +1029,183 @@
         }
       } catch (e) {
         logSmeAudit(`Error: ${e.message}`, 'error');
+      }
+    }
+
+    // ===== SME Module Direct Invocation =====
+    const smeTxtLog = document.getElementById('smeTxtLog');
+    const smeVisLog = document.getElementById('smeVisLog');
+    const smeAudLog = document.getElementById('smeAudLog');
+    const smeVidLog = document.getElementById('smeVidLog');
+    const smeGenLog = document.getElementById('smeGenLog');
+    const smeGenProgress = document.getElementById('smeGenProgress');
+    const smeGenProgressFill = document.getElementById('smeGenProgressFill');
+
+    function logSmeTxt(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      smeTxtLog.appendChild(div);
+      smeTxtLog.scrollTop = smeTxtLog.scrollHeight;
+    }
+
+    function logSmeVis(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      smeVisLog.appendChild(div);
+      smeVisLog.scrollTop = smeVisLog.scrollHeight;
+    }
+
+    function logSmeAud(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      smeAudLog.appendChild(div);
+      smeAudLog.scrollTop = smeAudLog.scrollHeight;
+    }
+
+    function logSmeVid(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      smeVidLog.appendChild(div);
+      smeVidLog.scrollTop = smeVidLog.scrollHeight;
+    }
+
+    function logSmeGen(msg, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log-line ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      smeGenLog.appendChild(div);
+      smeGenLog.scrollTop = smeGenLog.scrollHeight;
+    }
+
+    function setSmeGenProgress(pct) {
+      smeGenProgress.style.display = 'block';
+      smeGenProgressFill.style.width = `${pct}%`;
+    }
+
+    async function runSMETxtGenerate() {
+      const prompt = document.getElementById('smeTxtPrompt').value.trim();
+      if (!prompt) return alert('Enter a prompt');
+      
+      const maxTokens = parseInt(document.getElementById('smeTxtMaxTokens').value);
+      const temperature = parseFloat(document.getElementById('smeTxtTemp').value);
+      
+      logSmeTxt(`Generating text: "${prompt.substring(0,50)}..."`, 'info');
+      
+      try {
+        const res = await api.sme.txtGenerate({ prompt, maxTokens, temperature, topP: 0.9 });
+        if (res.ok) {
+          logSmeTxt(`✅ Generated: ${res.text?.substring(0,100)}...`, 'info');
+          logSmeTxt(`Tokens: ${res.usage?.totalTokens || 'N/A'}`, 'info');
+        } else {
+          logSmeTxt(`❌ Failed: ${res.error}`, 'error');
+        }
+      } catch (e) {
+        logSmeTxt(`❌ Error: ${e.message}`, 'error');
+      }
+    }
+
+    async function runSMEVisEncode() {
+      const imageBase64 = document.getElementById('smeVisImage').value.trim();
+      if (!imageBase64) return alert('Paste base64 image data');
+      
+      const mimeType = document.getElementById('smeVisMime').value;
+      const extractFeatures = document.getElementById('smeVisFeatures').value === 'true';
+      
+      logSmeVis(`Encoding image (${imageBase64.length} chars)...`, 'info');
+      
+      try {
+        const res = await api.sme.visEncode({ imageBase64, mimeType, extractFeatures });
+        if (res.ok) {
+          logSmeVis(`✅ Encoded: ${res.features?.length || 0} features`, 'info');
+          if (res.embedding) {
+            logSmeVis(`Embedding dim: ${res.embedding.length}`, 'info');
+          }
+        } else {
+          logSmeVis(`❌ Failed: ${res.error}`, 'error');
+        }
+      } catch (e) {
+        logSmeVis(`❌ Error: ${e.message}`, 'error');
+      }
+    }
+
+    async function runSMEAudTranscribe() {
+      const audioBase64 = document.getElementById('smeAudAudio').value.trim();
+      if (!audioBase64) return alert('Paste base64 audio data');
+      
+      const mimeType = document.getElementById('smeAudMime').value;
+      
+      logSmeAud(`Transcribing audio (${audioBase64.length} chars)...`, 'info');
+      
+      try {
+        const res = await api.sme.audTranscribe({ audioBase64, mimeType, options: {} });
+        if (res.ok) {
+          logSmeAud(`✅ Transcribed: "${res.text?.substring(0,100)}..."`, 'info');
+          logSmeAud(`Language: ${res.language || 'unknown'}`, 'info');
+        } else {
+          logSmeAud(`❌ Failed: ${res.error}`, 'error');
+        }
+      } catch (e) {
+        logSmeAud(`❌ Error: ${e.message}`, 'error');
+      }
+    }
+
+    async function runSMEVidProcess() {
+      const preset = document.getElementById('smeVidPreset').value;
+      const inputPath = document.getElementById('smeVidInput').value.trim();
+      const outputPath = document.getElementById('smeVidOutput').value.trim();
+      
+      if (!inputPath || !outputPath) return alert('Enter input and output paths');
+      
+      logSmeVid(`Processing video: ${preset} preset`, 'info');
+      
+      try {
+        const res = await api.sme.vidProcess({ preset, inputPath, outputPath });
+        if (res.ok) {
+          logSmeVid(`✅ Video processed: ${outputPath}`, 'info');
+          logSmeVid(`Frames: ${res.frames || 'N/A'}`, 'info');
+        } else {
+          logSmeVid(`❌ Failed: ${res.error}`, 'error');
+        }
+      } catch (e) {
+        logSmeVid(`❌ Error: ${e.message}`, 'error');
+      }
+    }
+
+    async function runSMEGenImage() {
+      const prompt = document.getElementById('smeGenPrompt').value.trim();
+      if (!prompt) return alert('Enter a prompt');
+      
+      const width = parseInt(document.getElementById('smeGenWidth').value);
+      const height = parseInt(document.getElementById('smeGenHeight').value);
+      const steps = parseInt(document.getElementById('smeGenSteps').value);
+      const guidanceScale = parseFloat(document.getElementById('smeGenGuidance').value);
+      
+      logSmeGen(`Generating image: "${prompt.substring(0,50)}..."`, 'info');
+      setSmeGenProgress(10);
+      
+      try {
+        const res = await api.sme.genImage({ prompt, width, height, steps, guidanceScale });
+        
+        setSmeGenProgress(90);
+        if (res.ok) {
+          logSmeGen(`✅ Image generated`, 'info');
+          logSmeGen(`Size: ${width}x${height}`, 'info');
+          
+          // Display in render preview
+          renderPreview.innerHTML = `<img src="data:image/png;base64,${res.imageBase64}" alt="Generated image">`;
+          
+          setSmeGenProgress(100);
+        } else {
+          logSmeGen(`❌ Failed: ${res.error}`, 'error');
+        }
+      } catch (e) {
+        logSmeGen(`❌ Error: ${e.message}`, 'error');
+      } finally {
+        setTimeout(() => smeGenProgress.style.display = 'none', 1000);
       }
     }
 
